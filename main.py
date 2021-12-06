@@ -1,12 +1,7 @@
-from typing import OrderedDict
-import torch
-import models
+import cache_coco_kp
 
-pif = models.PIF()
-pif.conv.load_state_dict(torch.load("wat.pth"))
+def main ():
+    cache_coco_kp.cache_train_data()
 
-
-resnet = models.Resnet()
-resnet.load_state_dict(torch.load("resnet_wat.pth"))
-
-print("OK")
+if __name__ == '__main__':
+    main()

@@ -1,6 +1,12 @@
-path = "/home/hestia/Documents/Experiments/Test/Implement/openpifpaf/openpifpaf/cache_wat/17/old_000000081988.jpg.pt"
-
+from typing import OrderedDict
 import torch
+import models
 
-x = torch.load(path)
-print(x.shape)
+pif = models.PIF()
+pif.conv.load_state_dict(torch.load("pif.pth"))
+
+
+resnet = models.Resnet()
+resnet.load_state_dict(torch.load("resnet50.pth"))
+
+print("OK")
