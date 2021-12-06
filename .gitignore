@@ -140,3 +140,5 @@ cython_debug/
 
 # Torch Models
 **/*.pth
+**/*.pt
+**/*.npy
