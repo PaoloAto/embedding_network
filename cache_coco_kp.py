@@ -19,7 +19,7 @@ def cache_train_data ():
 
     imgIds = coco.getImgIds(catIds=catIds)
 
-    # print("Number of images containing all the  classes:", len(imgIds))
+    print("Number of images containing ['Person'] class:", len(imgIds))
 
     ims = []
     anns = []
@@ -31,13 +31,13 @@ def cache_train_data ():
         im_name = ims[i]['file_name']
         id = ims[i]['id']
         image = Image.open(f'{dataDir}/images/{dataType}/{im_name}') 
-        image.save(f"/home/hestia/Documents/Experiments/Test/new/cached_images/coco_train/{id}.jpg")
+        image.save(f"/home/hestia/Documents/Experiments/Test/embedding_network/cached_images/coco_train/{id}.jpg")
 
         #Save Needed Annotation Data
         anns.append(coco.loadAnns(coco.getAnnIds([id])))
 
     #Run Pifpaf Predict on the train data to obtain the PIF and the HR heatmap
-    os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/new/cached_images/coco_train/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
+    os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cached_images/coco_train/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
 
 
 def main ():

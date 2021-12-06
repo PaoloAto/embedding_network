@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__() 
+        #Idea: Conv2D -> BN -> Relu (Not yet fully sure on the in & out channels, kernel 3, stride & padding 1)
         self.C1 = nn.Sequential(
                                 nn.Conv2d(in_channels , out_channels, 3, 1, 1),
                                 nn.BatchNorm2d(num_features),
