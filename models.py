@@ -42,67 +42,7 @@ class PIF(nn.Module):
             feature_height,
             feature_width
         )
-
-        # if not self.training and self.inplace_ops:
-        #     # classification
-        #     classes_x = x[:, :, 0:self.meta.n_confidences]
-        #     torch.sigmoid_(classes_x)
-
-        #     # regressions x: add index
-        #     if self.meta.n_vectors > 0:
-        #         index_field = index_field_torch((feature_height, feature_width), device=x.device)
-        #         first_reg_feature = self.meta.n_confidences
-        #         for i, do_offset in enumerate(self.meta.vector_offsets):
-        #             if not do_offset:
-        #                 continue
-        #             reg_x = x[:, :, first_reg_feature + i * 2:first_reg_feature + (i + 1) * 2]
-        #             reg_x.add_(index_field)
-
-        #     # scale
-        #     first_scale_feature = self.meta.n_confidences + self.meta.n_vectors * 3
-        #     scales_x = x[:, :, first_scale_feature:first_scale_feature + self.meta.n_scales]
-        #     scales_x[:] = torch.nn.functional.softplus(scales_x)
-        # elif not self.training and not self.inplace_ops:
-        #     # TODO: CoreMLv4 does not like strided slices.
-        #     # Strides are avoided when switching the first and second dim
-        #     # temporarily.
-        #     x = torch.transpose(x, 1, 2)
-
-        #     # classification
-        #     classes_x = x[:, 0:self.meta.n_confidences]
-        #     classes_x = torch.sigmoid(classes_x)
-
-        #     # regressions x
-        #     first_reg_feature = self.meta.n_confidences
-        #     regs_x = [
-        #         x[:, first_reg_feature + i * 2:first_reg_feature + (i + 1) * 2]
-        #         for i in range(self.meta.n_vectors)
-        #     ]
-        #     # regressions x: add index
-        #     index_field = index_field_torch(
-        #         (feature_height, feature_width), device=x.device, unsqueeze=(1, 0))
-        #     # TODO: coreml export does not work with the index_field creation in the graph.
-        #     index_field = torch.from_numpy(index_field.numpy())
-        #     regs_x = [reg_x + index_field if do_offset else reg_x
-        #               for reg_x, do_offset in zip(regs_x, self.meta.vector_offsets)]
-
-        #     # regressions logb
-        #     first_reglogb_feature = self.meta.n_confidences + self.meta.n_vectors * 2
-        #     regs_logb = x[:, first_reglogb_feature:first_reglogb_feature + self.meta.n_vectors]
-
-        #     # scale
-        #     first_scale_feature = self.meta.n_confidences + self.meta.n_vectors * 3
-        #     scales_x = x[:, first_scale_feature:first_scale_feature + self.meta.n_scales]
-        #     scales_x = torch.nn.functional.softplus(scales_x)
-
-        #     # concat
-        #     x = torch.cat([classes_x, *regs_x, regs_logb, scales_x], dim=1)
-
-        #     # TODO: CoreMLv4 problem (see above).
-        #     x = torch.transpose(x, 1, 2)
-
         return x
-
 
 class Resnet(nn.Module):
     pretrained = True

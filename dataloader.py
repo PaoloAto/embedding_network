@@ -7,22 +7,24 @@ from PIL import Image
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
+from models import Resnet
+from glob import glob
+
 class ImageWithHeatmapDataset(data.Dataset):
     
     def __init__(self, image_paths, heatmap_dir, device="cuda:0") -> None:
-        from glob import glob
-
+    
+        #/home/hestia/Documents/Experiments/Test/embedding_network/cached_images/coco_train/
         self.images = glob(image_paths)
         self.images.sort()
 
+        #/home/hestia/Documents/Experiments/Test/embedding_network/cache_pifpaf_results/field_*/
         self.heatmap_dir = heatmap_dir
 
         self.device = device
 
-
-        from models import Resnet
         self.model = Resnet()
-        self.model.load_state_dict(torch.load("resnet50.pth"))
+        self.model.load_state_dict(torch.load("weights/resnet50.pth"))
         self.model.eval()
         self.model.to(device=device)
 
