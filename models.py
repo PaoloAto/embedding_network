@@ -52,8 +52,10 @@ class Resnet(nn.Module):
     remove_last_block = False
     block5_dilation = 1
 
-    def __init__(self, torchvision_resnet=None, out_features=2048):
+    def __init__(self, torchvision_resnet=None, output_block_idx=-1, out_features=2048):
         super().__init__()
+
+        self.output_block_idx=output_block_idx
 
         if torchvision_resnet is None:
             from torchvision.models.resnet import resnet50 as torchvision_resnet
@@ -119,9 +121,16 @@ class Resnet(nn.Module):
         self.block5 = block5
 
     def forward(self, x):
-        x = self.input_block(x)
-        x = self.block2(x)
-        x = self.block3(x)
-        x = self.block4(x)
-        x = self.block5(x)
+        blocks = [
+            self.input_block,
+            self.block2,
+            self.block3,
+            self.block4,
+            self.block5
+        ]
+
+        for block_idx, block in enumerate(blocks):
+            x = block(x)
+            if block_idx == self.output_block_idx:
+                return x
         return x

@@ -33,16 +33,35 @@ class ImageWithHeatmapDataset(data.Dataset):
     def __len__(self):
         return len(self.images)
 
+    def _heatmap_paths(self, image_path):
+        from os.path import join, basename, splitext
+
+        paths = []
+        for i in range(17):
+            # Data Format: Heatmap dir + /field_{i}/'file_name'.npy
+            filepath = basename(image_path)
+            name, ext = splitext(filepath)
+
+            p = join(self.heatmap_dir, f"field_{i}", f"{name}.npy" )
+
+            # TODO Fix p => fix dirs, input - img paths, output - heatmap 
+
+            paths.append(p)
+        return paths
+
 
     @torch.no_grad()
     def __getitem__(self, index):
         image_path = self.images[index]
+        heatmap_paths = self._heatmap_paths(image_path)
         features = self._image_preprocess(image_path)
-        heatmap = self._heatmap_preprocess(image_path)
+        heatmap = self._heatmap_preprocess(heatmap_paths)
         return self._join(features, heatmap)
 
     def _join(self, features, heatmap):
-        print("Features", features.size(), "Heatmap", heatmap.size())
+        # C, H, W = features.size()
+        # heatmap = F.interpolate(heatmap.unsqueeze(0), size=(H, W), mode="bilinear").squeeze(0) #set image and heatmap to same size
+        # return torch.cat([features, heatmap], dim=0)
 
         C, H, W = heatmap.size()
         features = F.interpolate(features.unsqueeze(0), size=(H, W), mode="bilinear").squeeze(0) #set image and heatmap to same size
@@ -54,25 +73,19 @@ class ImageWithHeatmapDataset(data.Dataset):
         y = self.model(x.to(device=self.device)).squeeze(0)
         return y # Features already
 
-    def _heatmap_preprocess(self, image_path):
-        from os.path import join, basename, splitext 
-        filepath = basename(image_path)
-        name, ext = splitext(filepath)
-        feature_path = join(self.heatmap_dir, f"{name}.pt")
-        t = torch.load(feature_path).to(device=self.device)
-        ONE, SEVENTEEN, FIVE, H, W = t.size()
-        assert ONE == 1
-        assert SEVENTEEN == 17
-        assert FIVE == 5
-        return t.view(-1, H, W)
-        
+    def _heatmap_preprocess(self, heatmap_paths):
+        array = []
+        for p in heatmap_paths:
+            t = np.load(p)
+            array.append(t)
+        return torch.tensor(array, device=self.device)
             
-def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", block_idx=-1, device="cpu"):
+def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", device="cpu"):
     from os import makedirs
     from os.path import join, basename, splitext, exists
     from tqdm import tqdm
 
-    ds = ImageWithHeatmapDataset(image_paths, heatmap_dir, resnet_pretrained, output_block_idx=block_idx, device=device)
+    ds = ImageWithHeatmapDataset(image_paths, heatmap_dir, resnet_pretrained, device=device)
     makedirs(out_dir, exist_ok=True)
 
     for i, image_path in enumerate(tqdm(ds.images)):
@@ -80,12 +93,12 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
         name, ext = splitext(filepath)
         outpath = join(out_dir, f"{name}.pt")
 
-        # if exists(outpath):
-        #     continue
+        if exists(outpath):
+            continue
 
         feature = ds[i]
         torch.save(feature.cpu(), outpath)
 
 
 if __name__ == "__main__":
-    cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache/coco_train/pifpaf/17/", block_idx=3, device="cuda:0")
+    cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache/coco_train/pifpaf/", device="cuda:0")
