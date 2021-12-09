@@ -13,10 +13,19 @@ def kp_to_box (x,y):
         y1 = 0
         y2 = 0
     else:
-        if x <= 4:
+        if x <= 4 and y <= 4:
             x1 = 0
             x2 = x + 4
-        elif y <= 4:
+            y1 = 0
+            y2 = y + 4
+        elif x <= 4 and y > 4:
+            x1 = 0
+            x2 = x + 4
+            y1 = y - 4
+            y2 = y + 4
+        elif x > 4 and y <= 4:
+            x1 = x - 4
+            x2 = x + 4
             y1 = 0
             y2 = y + 4
         else:
@@ -44,7 +53,7 @@ def cache_train_data ():
 
     ims = []
     anns = []
-    image_count = 2
+    image_count = 10
 
     for i in range (image_count):
         #Save Image
@@ -59,20 +68,21 @@ def cache_train_data ():
 
         for j in range (len(annotations)):
             for k in range (17):
-                temp = []
-                x1,x2,y1,y2 = kp_to_box(annotations[j]['keypoints'][3*k], annotations[j]['keypoints'][3*k+1])
-                # [image_id, object_instance #, key_point #, x1, x2, y1, y2]
-                temp.extend((id,j,k,x1,x2,y1,y2))
-                anns.append(temp)
-        breakpoint()
-
-    breakpoint()
+                if (annotations[j]['keypoints'][3*k] == 0 and annotations[j]['keypoints'][3*k+1] == 0):
+                    continue
+                else:
+                    temp = []
+                    x1,x2,y1,y2 = kp_to_box(annotations[j]['keypoints'][3*k], annotations[j]['keypoints'][3*k+1])
+                    # [image_name, object_instance #, key_point #, x1, x2, y1, y2]
+                    temp.extend((f'{id}.jpg',j,k,x1,x2,y1,y2))
+                    anns.append(temp)
+            # breakpoint()
+    # breakpoint()
 
     #Run Pifpaf Predict on the train data to obtain the PIF and the HR heatmap
-    # os.system("pytho  openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cached_images/coco_train/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
+    os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/images/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
 
     return anns
-
 
 def main ():
    annotations = cache_train_data () 

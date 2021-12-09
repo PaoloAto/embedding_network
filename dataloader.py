@@ -44,18 +44,17 @@ class ImageWithHeatmapDataset(data.Dataset):
     def __len__(self):
         return len(self.images)
 
-
-    # def _keypoint_preprocess(self, image_path):
-    #     # keypoints.size() == total_keypoints_in_image x 6 (#object, #keypoint_type, x1, y1, x2, y2)
-    #     ordered_anns = self.anns
-    #     return ordered_anns
+    def _keypoint_preprocess(self):
+        # keypoints.size() == total_keypoints_in_image x 6 (#object, #keypoint_type, x1, y1, x2, y2)
+        ordered_anns = self.anns
+        return ordered_anns
 
     @torch.no_grad()
     def __getitem__(self, index):
         image_path = self.images[index]
         features = self._image_preprocess(image_path)
         heatmap = self._heatmap_preprocess(image_path)
-        keypoints = self.anns()
+        keypoints = self._keypoint_preprocess()
  
         return self._join(features, heatmap), keypoints
 
@@ -70,7 +69,6 @@ class ImageWithHeatmapDataset(data.Dataset):
             heatmap = F.interpolate(heatmap.unsqueeze(0), size=(H, W), mode="bilinear").squeeze(0) #set image and heatmap to same size
 
         return torch.cat([features, heatmap], dim=0)
-
     
     def _image_preprocess(self, image_path):
         t = TF.to_tensor(Image.open(image_path))
@@ -105,6 +103,5 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
         feature = ds[i]
         torch.save(feature.cpu(), outpath)
 
-
 if __name__ == "__main__":
-    cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache/coco_train/pifpaf/17/", block_idx=3, device="cuda:0")
+    cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache_pifpaf_results/17/", block_idx=3, device="cuda:0")

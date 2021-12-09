@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torchvision
 
 class Net(nn.Module):
     def __init__(self):
@@ -42,8 +42,9 @@ if __name__ == '__main__':
 
     # y = net(x)
     # B, C, H, W = y.size()
-    # y_flat = y.view(B, C, H*W).permute(0, 2, 1)
+    # print(y)
 
+    # y_flat = y.view(B, C, H*W).permute(0, 2, 1)
     # z = torch.cdist(y_flat, y_flat)
 
 
@@ -71,7 +72,5 @@ if __name__ == '__main__':
     #             # score = similarity(z[a_x, a_y], z[b_x, b_y])
 
     # F.l1_loss(z, vanilla_similarity_map)
-
-    # import torchvision
     
     # torchvision.utils.save_image(z.cpu(), "test.png")
