@@ -101,7 +101,7 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
         #     continue
 
         feature = ds[i]
-        torch.save(feature.cpu(), outpath)
+        torch.save(feature.cpu(), outpath) #error here: maybe cause of use_resnet_features=[t,F] & heatmap_size=[t,F] (works if .cpu() is removed but output might be diff)
 
 if __name__ == "__main__":
     cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache_pifpaf_results/17/", block_idx=3, device="cuda:0")

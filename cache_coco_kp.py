@@ -52,8 +52,9 @@ def cache_train_data ():
     print("Number of images containing ['Person'] class:", len(imgIds))
 
     ims = []
-    anns = []
+    # kp = []
     image_count = 10
+    anns = []
 
     for i in range (image_count):
         #Save Image
@@ -65,7 +66,7 @@ def cache_train_data ():
 
         #Save Needed Annotation Data
         annotations = coco.loadAnns(coco.getAnnIds([id]))
-
+        kp = []
         for j in range (len(annotations)):
             for k in range (17):
                 if (annotations[j]['keypoints'][3*k] == 0 and annotations[j]['keypoints'][3*k+1] == 0):
@@ -73,16 +74,18 @@ def cache_train_data ():
                 else:
                     temp = []
                     x1,x2,y1,y2 = kp_to_box(annotations[j]['keypoints'][3*k], annotations[j]['keypoints'][3*k+1])
-                    # [image_name, object_instance #, key_point #, x1, x2, y1, y2]
                     temp.extend((f'{id}.jpg',j,k,x1,x2,y1,y2))
-                    anns.append(temp)
-            # breakpoint()
-    # breakpoint()
+                    # Indexing: List[kp_type][image_name, object_instance #, key_point #, x1, x2, y1, y2]
+                    kp.append(temp)
+        # Indexing: List[perImage][kp_type][image_name, object_instance #, key_point #, x1, x2, y1, y2]
+        anns.append(kp)
+        breakpoint()
 
     #Run Pifpaf Predict on the train data to obtain the PIF and the HR heatmap
     os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/images/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
 
     return anns
+    # return kp
 
 def main ():
    annotations = cache_train_data () 
