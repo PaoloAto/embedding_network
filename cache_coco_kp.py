@@ -1,10 +1,11 @@
 from pycocotools.coco import COCO
 import numpy as np
 import pylab
-from PIL import Image 
 import PIL 
+from PIL import Image 
 import os
-import openpifpaf
+
+import torch
 
 def kp_to_box (x,y):
     if(x == 0 and y == 0):
@@ -75,16 +76,30 @@ def cache_train_data ():
                     temp = []
                     x1,x2,y1,y2 = kp_to_box(annotations[j]['keypoints'][3*k], annotations[j]['keypoints'][3*k+1])
                     temp.extend((f'{id}.jpg',j,k,x1,x2,y1,y2))
-                    # Indexing: List[kp_type][image_name, object_instance #, key_point #, x1, x2, y1, y2]
                     kp.append(temp)
-        # Indexing: List[perImage][kp_type][image_name, object_instance #, key_point #, x1, x2, y1, y2]
+        # Indexing: List[perImage][anns_perImage][image_name, object_instance #, key_point #, x1, x2, y1, y2]
+        # kp[:, :, kp[2] == 1, :, :, :, :]
         anns.append(kp)
-        breakpoint()
+        # breakpoint()
+
+    db = {}
+
+    for group in anns:
+        for a in group:
+            name, *data = a
+            name = name.replace(".jpg", "")
+            if name not in db:
+                db[name] = []
+            db[name].append(data)
+
+    out = {}
+    for name, value in db.items():
+        out[name] = torch.tensor(value)
 
     #Run Pifpaf Predict on the train data to obtain the PIF and the HR heatmap
     os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/images/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50")
 
-    return anns
+    return out
     # return kp
 
 def main ():

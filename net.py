@@ -4,11 +4,11 @@ import torch.nn.functional as F
 import torchvision
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=88):
         super(Net, self).__init__() 
 
 
-        channels = [1109, 512, 256, 128]
+        channels = [in_channels, 32, 64, 128]
 
         layers = []
 
@@ -47,7 +47,6 @@ if __name__ == '__main__':
     # y_flat = y.view(B, C, H*W).permute(0, 2, 1)
     # z = torch.cdist(y_flat, y_flat)
 
-
     # vanilla_similarity_map = None
 
     # def from_same_object(a, b):
@@ -59,7 +58,6 @@ if __name__ == '__main__':
     # def to_flat_idx(x, y, feature_size):
     #     B, C, H, W = feature_size
     #     return x * H + y
-
 
     # keypoints = []
     # for a in keypoints:
