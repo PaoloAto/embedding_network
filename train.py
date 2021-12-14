@@ -32,6 +32,13 @@ writer = SummaryWriter()
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def main ():
+
+    loader1 = T.Compose([
+        torch.load,
+        T.Resize((81,100)),
+        lambda t: t.cuda()
+    ])
+
     loader = T.Compose([
         torch.load,
         lambda t: t.cuda()
@@ -45,9 +52,9 @@ def main ():
         name_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt")
         ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
     else:
-        feature_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt", transform=loader)
-        keypoint_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.keypoints.pt", transform=loader)
-        name_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt")
+        feature_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching/features/*.features.pt", transform=loader)
+        keypoint_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching/features/*.keypoints.pt", transform=loader)
+        name_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching/features/*.features.pt")
         ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
 
     inv_channel = 0
@@ -63,7 +70,6 @@ def main ():
 
         # feat = features, kp = keypoints, fn = 'cache/coco_train/features/{img}.features.pt'
         for feat, kp, fn in tqdm(data.DataLoader(ds, batch_size=1)):
-            
             if (feat.shape[1] == 88):
                 z = N(feat)
                 # losses = dataloader.loss_fn(z, kp, e)

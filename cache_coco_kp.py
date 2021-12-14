@@ -41,7 +41,7 @@ def kp_to_box (x,y):
 
 def cache_train_data ():
     
-    path = "val"
+    path = "train"
 
     if (path == "train"):
         dataType='train2017'

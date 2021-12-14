@@ -104,7 +104,12 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
     makedirs(out_dir, exist_ok=True)
 
     wrong_channels = 0
-    file1 = open("invalid_channels_overfit.txt","a")
+    # file1 = open("b&w_channels_overfit.txt","a")
+    file1 = open("train_img.txt","a")
+    max_x = 0
+    max_y = 100
+    x_vals = 0
+    y_vals = 0
 
     for i, image_path in enumerate(tqdm(ds.images)):
         filepath = basename(image_path)
@@ -115,17 +120,31 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
         #     continue
 
         feature, keypoints = ds[i]
+        
         if keypoints.size(0):
-            print("KP", feature.size(), keypoints.size())
+            print("Feat & KP", feature.size(), keypoints.size())
             torch.save(feature.cpu(), join(out_dir, f"{name}.features.pt"))
             torch.save(keypoints.cpu(), join(out_dir, f"{name}.keypoints.pt"))
-            if (feature.size()[0] != 88):
-                wrong_channels += 1
-                file1.write(f"{name}.jpg => Feature Shape: {feature.shape} \n")
+            x_vals += feature.shape[1]
+            y_vals += feature.shape[2]
+
+            if (feature.shape[1] > max_x):
+                max_x = feature.shape[1]
+
+            if (feature.shape[2] > max_y):
+                max_y = feature.shape[2]
+
+            # if (feature.size()[0] != 88):
+            #     wrong_channels += 1
+            #     file1.write(f"{name}.jpg => Feature Shape: {feature.shape} \n")
         else:
             print("No kp: ", name)
     
-    print("Number of Images not with 88 channels: ", wrong_channels)
+    average_x = x_vals/(i+1)
+    average_y = y_vals/(i+1)
+
+    file1.write(f" Max X: {max_x}, Max Y: {max_y}, Average X: {average_x}, Average Y: {average_y} \n")
+    # print("Number of Images not with 88 channels: ", wrong_channels)
     file1.close()
 
 
@@ -209,10 +228,10 @@ if __name__ == "__main__":
     # Cached path: cache_pifpaf_results/17/
 
     # Train Set
-    # cache_feature("/mnt/5E18698518695D51/Experiments/caching/features/", "cache/coco_train/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
+    cache_feature("/mnt/5E18698518695D51/Experiments/caching/features/", "cache/coco_train/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17", block_idx=3, device="cuda:0")
 
     # Val Set
-    cache_feature("/mnt/5E18698518695D51/Experiments/caching_val/features/", "cache/coco_val/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching_val/cache_pifpaf_results/17", block_idx=3, device="cuda:0")
+    # cache_feature("/mnt/5E18698518695D51/Experiments/caching_val/features/", "cache/coco_val/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching_val/cache_pifpaf_results/17", block_idx=3, device="cuda:0")
 
     # loader = T.Compose([
     #     torch.load,
