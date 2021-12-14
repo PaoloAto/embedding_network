@@ -7,7 +7,6 @@ class Net(nn.Module):
     def __init__(self, in_channels=88):
         super(Net, self).__init__() 
 
-
         channels = [in_channels, 32, 64, 128]
 
         layers = []

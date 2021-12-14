@@ -145,3 +145,10 @@ cython_debug/
 
 # Images 
 **/*.jpg
+
+# Text Files
+**/*.txt
+
+# Folders
+runs
+models

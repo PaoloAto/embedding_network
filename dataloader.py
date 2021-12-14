@@ -16,6 +16,13 @@ from os.path import join, basename, splitext, exists
 from tqdm import tqdm
 import cache_coco_kp
 
+from torchvision import transforms as T
+from torchvision.ops import roi_pool
+from net import Net
+
+# from torch.utils.tensorboard import SummaryWriter
+# writer = SummaryWriter()
+
 class ImageWithHeatmapDataset(data.Dataset):
     
     def __init__(self, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", use_resnet_features=False, resnet_block_idx=-1, heatmap_size=True, device="cuda:0") -> None:
@@ -52,7 +59,6 @@ class ImageWithHeatmapDataset(data.Dataset):
         if name not in self.anns:
             self.anns[name] = torch.zeros((0, 6))
         ordered_anns = self.anns[name]
-
 
         return ordered_anns
 
@@ -94,9 +100,11 @@ class ImageWithHeatmapDataset(data.Dataset):
         return t.view(-1, H, W)
             
 def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", block_idx=-1, device="cpu"):
-    from os.path import join
     ds = ImageWithHeatmapDataset(image_paths, heatmap_dir, resnet_pretrained, resnet_block_idx=block_idx, device=device)
     makedirs(out_dir, exist_ok=True)
+
+    wrong_channels = 0
+    file1 = open("invalid_channels.txt","a")
 
     for i, image_path in enumerate(tqdm(ds.images)):
         filepath = basename(image_path)
@@ -111,8 +119,14 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
             print("KP", feature.size(), keypoints.size())
             torch.save(feature.cpu(), join(out_dir, f"{name}.features.pt"))
             torch.save(keypoints.cpu(), join(out_dir, f"{name}.keypoints.pt"))
+            if (feature.size()[0] != 88):
+                wrong_channels += 1
+                file1.write(f"{name}.jpg => Feature Shape: {feature.shape} \n")
         else:
             print("No kp: ", name)
+    
+    print("Number of Images not with 88 channels: ", wrong_channels)
+    file1.close()
 
 
 class GlobDataset(data.Dataset):
@@ -152,77 +166,92 @@ class ZipDataset(data.Dataset):
     def __getitem__(self, index):
         return tuple(self.getitem0(index))
 
-
-from torchvision.ops import roi_pool
-
-def loss_fn(embeddings, keypoints):
+def loss_fn(embeddings, keypoints, epoch):
     loss = 0
-
     assert embeddings.size(0) == 1
     keypoints = keypoints.squeeze(0)
 
-    # ROI Pooling
-    boxes = roi_pool(embeddings, [keypoints[:,-4:].float()], output_size=2, spatial_scale=0.125)# TODO find scale
+    # ROI Pooling => Embeddings from net: [B, C, H, W], GT KP: [Obj_Instance, kp_type, x1, x2, y1, y2]
+    boxes = roi_pool(embeddings, [keypoints[:,-4:].float()], output_size=2, spatial_scale=0.125) 
     all_obj_idxs = keypoints[:,0]
-    for obj_idx in torch.unique(all_obj_idxs):
-
+    for obj_idx in torch.unique(all_obj_idxs): #per kp in obj
+        #
         positive = boxes[all_obj_idxs == obj_idx]
         num_boxes, *dims = positive.size()
+        if(epoch == 100):
+            breakpoint()
         positive = positive.view(1, num_boxes, -1)
-        loss += torch.cdist(positive, positive).mean()
 
+        compute_p = torch.cdist(positive, positive)
+        loss += compute_p.mean()
+        if(epoch == 100):
+            breakpoint()
 
         negative = boxes[all_obj_idxs != obj_idx]
+
         if negative.size(0) != 0:
             num_boxes, *dims = negative.size()
+            if(epoch == 100):
+                breakpoint()
             negative = negative.view(1, num_boxes, -1)
-            loss += 1 / torch.cdist(positive, negative).mean()
 
+            compute_n = torch.cdist(positive, negative)
+            loss += 1 / compute_n.mean()
+            if(epoch == 100):
+                breakpoint()
 
     return loss
 
-
-
 if __name__ == "__main__":
-    from torchvision import transforms as T
-    # cache_feature("cache/coco_train/features", "cache/coco_train/images/*.jpg", "cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
-    # print("-"*120)
-
-    loader = T.Compose([
-        torch.load,
-        lambda t: t.cuda()
-    ])
-    feature_ds = GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
-    keypoint_ds = GlobDataset("cache/coco_train/features/*.keypoints.pt", transform=loader)
-    name_ds = GlobDataset("cache/coco_train/features/*.features.pt")
-    ds = ZipDataset(feature_ds, keypoint_ds, name_ds)
-
-    from net import Net
-
+    # cache_feature("cache/coco_train/features", "cache/coco_train/overfit_images/*.jpg", "cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
+    # Feature & Keypoint path: cache/coco_train/features
+    # Image path: cache/coco_train/overfit_images/*.jpg
+    # Cached path: cache_pifpaf_results/17/
+    cache_feature("/mnt/5E18698518695D51/Experiments/caching/features/", "cache/coco_train/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
     
-    N = Net().cuda()
-    optim = torch.optim.Adam(N.parameters())
 
-    from tqdm import tqdm
+    # loader = T.Compose([
+    #     torch.load,
+    #     lambda t: t.cuda()
+    # ])
+    # feature_ds = GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
+    # keypoint_ds = GlobDataset("cache/coco_train/features/*.keypoints.pt", transform=loader)
+    # name_ds = GlobDataset("cache/coco_train/features/*.features.pt")
+    # ds = ZipDataset(feature_ds, keypoint_ds, name_ds)
 
+    # inv_channel = 0
 
+    # N = Net().cuda()
+    # optim = torch.optim.Adam(N.parameters())
 
-    for e in range(100):
-        print("Epoch", e)
-        record_losses = []
+    # epoch = 200
 
-        for x, y, n in tqdm(data.DataLoader(ds, batch_size=1)):
+    # for e in range(epoch):
+    #     print("Epoch", e)
+    #     record_losses = []
 
-            z = N(x)
-            l = loss_fn(z, y)
+    #     # feat = features, kp = keypoints, fn = 'cache/coco_train/features/{img}.features.pt'
+    #     for feat, kp, fn in tqdm(data.DataLoader(ds, batch_size=1)):
+            
+    #         if (feat.shape[1] == 88):
+    #             z = N(feat)
+    #             losses = loss_fn(z, kp)
 
-            # All gradient computation
-            optim.zero_grad()
-            l.backward()
-            optim.step()
+    #             # All gradient computation
+    #             optim.zero_grad()
+    #             losses.backward()
+    #             optim.step()
 
-            record_losses.append(l.item())
+    #             record_losses.append(losses.item())
 
-        print("Loss:", sum(record_losses)/len(record_losses))
-        torch.save(N.state_dict(), f"models/{e:02}.pth")
+    #             breakpoint()
+    #         else:
+    #             inv_channel += 1
+
+    #     # print("Number of Images not with 88 channels in training: ", inv_channel)
+    #     print("Loss:", sum(record_losses)/len(record_losses))
+    #     writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
+    #     torch.save(N.state_dict(), f"models/{e:02}.pth")
+
+    # breakpoint()
 
