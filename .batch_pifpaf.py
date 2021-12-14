@@ -16,11 +16,11 @@ def iterate(path, size=100):
         yield files[start:end]
 
 
-temp_dir = "temp"
+temp_dir = "temp_val"
 done_imgs = 0
 
 # Batching images and copying to temp folder
-# for group_idx, imagepaths in enumerate(iterate('/home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/images/*.jpg')):
+# for group_idx, imagepaths in enumerate(iterate('/home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_val/images/*.jpg')):
 #     for imagepath in imagepaths:
 #         name = basename(imagepath)
 #         outpath = join(temp_dir, str(group_idx), name)
@@ -33,6 +33,7 @@ done_imgs = 0
     # cmd = "python3 -m openpifpaf.predict "+ img  +" --debug-indices cif:0   --checkpoint=resnet50"
     # # cmd = "python3 -m openpifpaf.predict "+ img  +" --debug-indices cif:0 cifhr:0  --checkpoint=resnet50  --q"
     # os.system(cmd)
+
 
 for subdir in glob(join(temp_dir, "*")):
     targets = join(abspath(subdir), "*.jpg")

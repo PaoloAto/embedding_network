@@ -1,3 +1,4 @@
+from pickle import FALSE
 import dataloader
 from net import Net
 import loss
@@ -36,17 +37,25 @@ def main ():
         lambda t: t.cuda()
     ])
 
-    feature_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
-    keypoint_ds = dataloader.GlobDataset("cache/coco_train/features/*.keypoints.pt", transform=loader)
-    name_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt")
-    ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
+    overfit = False
+
+    if overfit:
+        feature_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
+        keypoint_ds = dataloader.GlobDataset("cache/coco_train/features/*.keypoints.pt", transform=loader)
+        name_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt")
+        ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
+    else:
+        feature_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt", transform=loader)
+        keypoint_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.keypoints.pt", transform=loader)
+        name_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt")
+        ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
 
     inv_channel = 0
 
     N = Net().cuda()
     optim = torch.optim.Adam(N.parameters())
 
-    epoch = 101
+    epoch = 500
 
     for e in range(epoch):
         print("Epoch", e)
@@ -57,7 +66,8 @@ def main ():
             
             if (feat.shape[1] == 88):
                 z = N(feat)
-                losses = dataloader.loss_fn(z, kp, e)
+                # losses = dataloader.loss_fn(z, kp, e)
+                losses = loss.loss_fn(z, kp)
 
                 # All gradient computation
                 optim.zero_grad()

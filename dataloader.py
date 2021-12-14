@@ -104,7 +104,7 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
     makedirs(out_dir, exist_ok=True)
 
     wrong_channels = 0
-    file1 = open("invalid_channels.txt","a")
+    file1 = open("invalid_channels_overfit.txt","a")
 
     for i, image_path in enumerate(tqdm(ds.images)):
         filepath = basename(image_path)
@@ -207,8 +207,12 @@ if __name__ == "__main__":
     # Feature & Keypoint path: cache/coco_train/features
     # Image path: cache/coco_train/overfit_images/*.jpg
     # Cached path: cache_pifpaf_results/17/
-    cache_feature("/mnt/5E18698518695D51/Experiments/caching/features/", "cache/coco_train/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
-    
+
+    # Train Set
+    # cache_feature("/mnt/5E18698518695D51/Experiments/caching/features/", "cache/coco_train/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/", block_idx=3, device="cuda:0")
+
+    # Val Set
+    cache_feature("/mnt/5E18698518695D51/Experiments/caching_val/features/", "cache/coco_val/images/*.jpg", "/mnt/5E18698518695D51/Experiments/caching_val/cache_pifpaf_results/17", block_idx=3, device="cuda:0")
 
     # loader = T.Compose([
     #     torch.load,

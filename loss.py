@@ -17,8 +17,8 @@ def loss_fn(embeddings, keypoints):
     boxes = roi_pool(embeddings, [keypoints[:,-4:].float()], output_size=2, spatial_scale=0.125) 
     all_obj_idxs = keypoints[:,0]
     for obj_idx in torch.unique(all_obj_idxs): #kp_types of per obj_instance in an image 
-        #
-        positive = boxes[all_obj_idxs == obj_idx]
+        
+        positive = boxes[all_obj_idxs == obj_idx] #Getting all annotated kp from the current obj_idx 
         num_boxes, *dims = positive.size()
 
         positive = positive.view(1, num_boxes, -1)
@@ -26,8 +26,7 @@ def loss_fn(embeddings, keypoints):
         compute_p = torch.cdist(positive, positive)
         loss += compute_p.mean()
 
-
-        negative = boxes[all_obj_idxs != obj_idx]
+        negative = boxes[all_obj_idxs != obj_idx] #Getting all kp from the other obj_idx different from the current (can be none if no other annotated kp person instance in image)
 
         if negative.size(0) != 0:
             num_boxes, *dims = negative.size()

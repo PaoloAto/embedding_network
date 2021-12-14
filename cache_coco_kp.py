@@ -7,6 +7,7 @@ import os
 import glob
 
 import torch
+from torch._C import TracingState
 
 def kp_to_box (x,y):
     if(x == 0 and y == 0):
@@ -39,8 +40,15 @@ def kp_to_box (x,y):
     return x1,x2,y1,y2
 
 def cache_train_data ():
+    
+    path = "val"
+
+    if (path == "train"):
+        dataType='train2017'
+    else:
+        dataType='val2017'
+
     dataDir='/home/hestia/Documents/Experiments/Test/Implement/openpifpaf/openpifpaf/data-mscoco'
-    dataType='train2017'
     annFile='{}/annotations/person_keypoints_{}.json'.format(dataDir,dataType)
 
     coco=COCO(annFile)
@@ -55,18 +63,18 @@ def cache_train_data ():
 
     ims = []
     # kp = []
-    image_count = 150
+    image_count = len(imgIds)
     annotated_count = 0
     anns = []
 
     for i in range (image_count):
         #Save Image   
-        # ims.append(coco.loadImgs(imgIds[i])[0]) 
-        ims.append(coco.loadImgs(imgIds[np.random.randint(0,len(imgIds))])[0]) # Random loading
+        ims.append(coco.loadImgs(imgIds[i])[0]) 
+        # ims.append(coco.loadImgs(imgIds[np.random.randint(0,len(imgIds))])[0]) # Random loading
 
         im_name = ims[i]['file_name']
         id = ims[i]['id']
-        image = Image.open(f'{dataDir}/images/{dataType}/{im_name}') 
+        # image = Image.open(f'{dataDir}/images/{dataType}/{im_name}') 
 
         #Save Needed Annotation Data
         annotations = coco.loadAnns(coco.getAnnIds([id]))
@@ -86,15 +94,10 @@ def cache_train_data ():
             continue
         else:
             anns.append(kp)
-            image.save(f"/home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/overfit_images/{id}.jpg")
+            # image.save(f"/home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_val/images/{id}.jpg")
             annotated_count += 1
 
     print("Number of images that have annotated keypoints: ", annotated_count)
-
-    # for img in glob.glob('/home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/images/*.jpg'):
-    #     cmd = "python3 -m openpifpaf.predict "+ img  +" --debug-indices cif:0   --checkpoint=resnet50"
-    #     # cmd = "python3 -m openpifpaf.predict "+ img  +" --debug-indices cif:0 cifhr:0  --checkpoint=resnet50  --q"
-    #     os.system(cmd)
 
     db = {}
 
@@ -111,13 +114,12 @@ def cache_train_data ():
         out[name] = torch.tensor(value)
 
     #Run Pifpaf Predict on the train data to obtain the PIF and the HR heatmap
-    os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/overfit_images/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50  --q")
+    # os.system("python3 -m openpifpaf.predict /home/hestia/Documents/Experiments/Test/embedding_network/cache/coco_train/overfit_images/*.jpg  --debug-indices cif:0 cifhr:0  --checkpoint=resnet50  --q")
 
     return out
 
 def main ():
-   annotations = cache_train_data () 
-   print(annotations)
+   cache_train_data () 
 
 if __name__ == '__main__':
     main()
