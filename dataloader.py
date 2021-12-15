@@ -1,5 +1,6 @@
 from os import name
 import torch.utils.data as data
+from torch.utils.data import DataLoader
 import numpy as np
 import torch
 
@@ -19,6 +20,8 @@ import cache_coco_kp
 from torchvision import transforms as T
 from torchvision.ops import roi_pool
 from net import Net
+
+
 
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
@@ -105,7 +108,7 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
 
     wrong_channels = 0
     # file1 = open("b&w_channels_overfit.txt","a")
-    file1 = open("train_img.txt","a")
+    file1 = open("text_files/b&w_channels_overfit.txt","a")
     max_x = 0
     max_y = 100
     x_vals = 0
@@ -125,28 +128,42 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
             print("Feat & KP", feature.size(), keypoints.size())
             torch.save(feature.cpu(), join(out_dir, f"{name}.features.pt"))
             torch.save(keypoints.cpu(), join(out_dir, f"{name}.keypoints.pt"))
-            x_vals += feature.shape[1]
-            y_vals += feature.shape[2]
+            # x_vals += feature.shape[1]
+            # y_vals += feature.shape[2]
 
-            if (feature.shape[1] > max_x):
-                max_x = feature.shape[1]
+            # if (feature.shape[1] > max_x):
+            #     max_x = feature.shape[1]
 
-            if (feature.shape[2] > max_y):
-                max_y = feature.shape[2]
+            # if (feature.shape[2] > max_y):
+            #     max_y = feature.shape[2]
 
-            # if (feature.size()[0] != 88):
-            #     wrong_channels += 1
-            #     file1.write(f"{name}.jpg => Feature Shape: {feature.shape} \n")
+            if (feature.size()[0] != 88):
+                wrong_channels += 1
+                file1.write(f"{name}.jpg => Feature Shape: {feature.shape} \n")
         else:
             print("No kp: ", name)
     
-    average_x = x_vals/(i+1)
-    average_y = y_vals/(i+1)
+    # average_x = x_vals/(i+1)
+    # average_y = y_vals/(i+1)
 
-    file1.write(f" Max X: {max_x}, Max Y: {max_y}, Average X: {average_x}, Average Y: {average_y} \n")
-    # print("Number of Images not with 88 channels: ", wrong_channels)
+    # file1.write(f" Max X: {max_x}, Max Y: {max_y}, Average X: {average_x}, Average Y: {average_y} \n")
+    print("Number of Images not with 88 channels: ", wrong_channels)
     file1.close()
 
+
+class ValueDataset(data.Dataset):
+
+    def __init__(self, values, transform=None):
+        from glob import glob
+
+        self.values = values
+        self.transform = transform or (lambda x: x)
+
+    def __len__(self):
+        return len(self.values)
+
+    def __getitem__(self, index):
+        return self.transform(self.values[index])
 
 class GlobDataset(data.Dataset):
 

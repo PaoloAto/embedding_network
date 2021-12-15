@@ -1,6 +1,6 @@
 from pickle import FALSE
 import dataloader
-from net import Net
+from net import CoordNet, Net
 import loss
 # import validation
 
@@ -47,7 +47,7 @@ def main():
         lambda t: t.cuda()
     ])
 
-    run_type = "test"
+    run_type = "train"
 
     if (run_type == "overfit"):
         feature_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
@@ -67,8 +67,8 @@ def main():
 
     inv_channel = 0
 
-    N = Net().cuda()
-    optim = torch.optim.Adam(N.parameters(), lr=0.001)
+    N = CoordNet().cuda()
+    optim = torch.optim.Adam(N.parameters(), lr=0.0001)
 
     epoch = 500
     check = 0
@@ -100,7 +100,7 @@ def main():
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/{e:02}.pth")
+        torch.save(N.state_dict(), f"models/coordconv_kpu/{e:02}.pth")
 
         # if (e % 5 == 0):
         #     validation.val()

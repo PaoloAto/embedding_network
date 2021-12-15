@@ -3,9 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+
+import coordconv
+
+
 class Net(nn.Module):
     def __init__(self, in_channels=88):
-        super(Net, self).__init__() 
+        super(Net, self).__init__()
 
         channels = [in_channels, 32, 64, 128]
 
@@ -18,7 +22,7 @@ class Net(nn.Module):
         relus[-1] = False
 
         for in_channel, out_channel, has_relu in zip(in_channels, out_channels, relus):
-            layers.append(nn.Conv2d(in_channel , out_channel, 3, stride=1, padding=1))
+            layers.append(nn.Conv2d(in_channel, out_channel, 3, stride=1, padding=1))
             layers.append(nn.BatchNorm2d(out_channel))
             if has_relu:
                 layers.append(nn.ReLU(inplace=True))
@@ -28,9 +32,37 @@ class Net(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-def main ():
+
+class CoordNet(nn.Module):
+    def __init__(self, in_channels=88):
+        super().__init__()
+
+        channels = [in_channels, 32, 64, 128]
+
+        layers = []
+
+        in_channels = channels[:-1]
+        out_channels = channels[1:]
+
+        relus = [True] * len(in_channels)
+        relus[-1] = False
+
+        for in_channel, out_channel, has_relu in zip(in_channels, out_channels, relus):
+            layers.append(coordconv.CoordConv(in_channel, out_channel, kernel_size=3, stride=1, padding=1))
+            layers.append(nn.BatchNorm2d(out_channel))
+            if has_relu:
+                layers.append(nn.ReLU(inplace=True))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+
+def main():
     net = Net()
     print(net)
+
 
 if __name__ == '__main__':
 
@@ -69,5 +101,5 @@ if __name__ == '__main__':
     #             # score = similarity(z[a_x, a_y], z[b_x, b_y])
 
     # F.l1_loss(z, vanilla_similarity_map)
-    
+
     # torchvision.utils.save_image(z.cpu(), "test.png")
