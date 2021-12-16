@@ -17,7 +17,7 @@ for f in tqdm(files):
 
     t = torch.load(f)
     objs = torch.unique(t[:, 0])
-    
+
     counts.append(len(objs))
 
     if len(objs) == 12:
@@ -27,8 +27,7 @@ for f in tqdm(files):
 
 plt.hist(counts)
 plt.savefig("test.png")
-    
 
-with open("equals12.txt", "w+") as f:
+
+with open("text_files/equals12.txt", "w+") as f:
     f.writelines(testlist)
-

@@ -33,6 +33,35 @@ class Net(nn.Module):
         return self.model(x)
 
 
+class CoordNetFirstOnly(nn.Module):
+    def __init__(self, in_channels=88):
+        super().__init__()
+
+        channels = [in_channels, 32, 64, 128]
+
+        layers = []
+
+        in_channels = channels[:-1]
+        out_channels = channels[1:]
+
+        relus = [True] * len(in_channels)
+        relus[-1] = False
+
+        for i, (in_channel, out_channel, has_relu) in enumerate(zip(in_channels, out_channels, relus)):
+            if i == 0:
+                layers.append(coordconv.CoordConv(in_channel, out_channel, kernel_size=3, stride=1, padding=1))
+            else:
+                layers.append(nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=1, padding=1))
+            layers.append(nn.BatchNorm2d(out_channel))
+            if has_relu:
+                layers.append(nn.ReLU(inplace=True))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+
 class CoordNet(nn.Module):
     def __init__(self, in_channels=88):
         super().__init__()

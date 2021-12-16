@@ -1,6 +1,6 @@
 from pickle import FALSE
 import dataloader
-from net import CoordNet, Net
+from net import CoordNet, Net, CoordNetFirstOnly
 import loss
 # import validation
 
@@ -67,7 +67,8 @@ def main():
 
     inv_channel = 0
 
-    N = CoordNet().cuda()
+    # N = CoordNet().cuda()
+    N = CoordNetFirstOnly().cuda()
     optim = torch.optim.Adam(N.parameters(), lr=0.0001)
 
     epoch = 500
@@ -76,6 +77,8 @@ def main():
         print("Epoch", e)
         record_losses = []
 
+        check = 0
+
         # feat = features, kp = keypoints, fn = 'cache/coco_train/features/{img}.features.pt'
         for feat, kp, fn in tqdm(data.DataLoader(ds, batch_size=1, num_workers=0)):
             if (feat.shape[1] == 88):
@@ -83,19 +86,23 @@ def main():
                 # losses = dataloader.loss_fn(z, kp, e)
                 losses = loss.loss_fn(z, kp)
 
-                # All gradient computation
-                optim.zero_grad()
-                losses.backward()
-                optim.step()
+                if (math.isinf(losses) == True or math.isnan(losses) == True):
+                    check += 1
+                    # temp_list.append(fn)
+                else:
+                    # All gradient computation
+                    optim.zero_grad()
+                    losses.backward()
+                    optim.step()
 
-                record_losses.append(losses.item())
+                    record_losses.append(losses.item())
             else:
                 inv_channel += 1
 
+        print("Check: ", check)
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/coordconv_kpu_w_inf/{e:02}.pth")
-
+        torch.save(N.state_dict(), f"models/coordconv_firstLayer/{e:02}.pth")
         # if (e % 5 == 0):
         #     validation.val()
 

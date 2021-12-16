@@ -9,7 +9,7 @@ from torchvision import transforms as T
 from torchvision.ops import roi_pool
 
 
-def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True, eps=1e-7):
+def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True):  # , eps=1e-7
     loss = 0
     assert embeddings.size(0) == 1
     keypoints = keypoints.squeeze(0)
@@ -35,7 +35,7 @@ def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True, eps=1e-7):
             negative = negative.view(1, num_boxes, -1)
 
             compute_n = torch.cdist(positive, negative)
-            loss += 1 / (compute_n.mean() + eps)
+            loss += 1 / (compute_n.mean())  # + eps
 
     if keypoint_uniqueness_loss:
         all_kp_idxs = keypoints[:, 1]
@@ -45,6 +45,6 @@ def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True, eps=1e-7):
                 num_boxes, *dims = same_kps.size()
                 same_kps = same_kps.view(1, num_boxes, -1)
                 compute_same_kps = torch.cdist(same_kps, same_kps)
-                loss += 1 / (compute_same_kps.mean() + eps)  # If they are assigned to the same keypoints map them far apart
+                loss += 1 / (compute_same_kps.mean())  # If they are assigned to the same keypoints map them far apart     #  + eps
 
     return loss

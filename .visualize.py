@@ -11,7 +11,7 @@ import torchvision
 
 from matplotlib import pyplot as plt
 
-with open("equals12.txt") as f:
+with open("text_files/equals12.txt") as f:
     files = f.readlines()
 
 
@@ -78,10 +78,10 @@ with torch.no_grad():
     for ft, kp in dataloader.DataLoader(ds, batch_size=1, shuffle=False):
         emb: torch.Tensor = N(ft)
         kp: torch.Tensor = kp.squeeze(0)
-        doview(emb, kp, "out_base_sim.png", "out_base_view.png")
+        doview(emb, kp, "visualize/out_base_sim.png", "visualize/out_base_view.png")
 
         emb: torch.Tensor = CN(ft)
         kp: torch.Tensor = kp.squeeze(0)
-        doview(emb, kp, "out_coord_sim.png", "out_coord_view.png")
+        doview(emb, kp, "visualize/out_coord_sim.png", "visualize/out_coord_view.png")
 
         exit()
