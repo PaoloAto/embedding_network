@@ -22,7 +22,7 @@ class Net(nn.Module):
         relus[-1] = False
 
         for in_channel, out_channel, has_relu in zip(in_channels, out_channels, relus):
-            layers.append(nn.Conv2d(in_channel, out_channel, 3, stride=1, padding=1))
+            layers.append(nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=1, padding=1))
             layers.append(nn.BatchNorm2d(out_channel))
             if has_relu:
                 layers.append(nn.ReLU(inplace=True))

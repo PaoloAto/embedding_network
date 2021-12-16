@@ -70,10 +70,10 @@ def doview(emb: torch.Tensor, kp: torch.Tensor, sim_out: str, view_out: str):
 
 with torch.no_grad():
     N = net.Net().cuda()
-    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(b1)/00.pth"))
+    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
 
     CN = net.CoordNet().cuda()
-    CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv/00.pth"))
+    CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu/05.pth"))
 
     for ft, kp in dataloader.DataLoader(ds, batch_size=1, shuffle=False):
         emb: torch.Tensor = N(ft)

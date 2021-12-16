@@ -47,7 +47,7 @@ def main():
         lambda t: t.cuda()
     ])
 
-    run_type = "test"
+    run_type = "train"
 
     if (run_type == "overfit"):
         feature_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
@@ -71,12 +71,12 @@ def main():
     optim = torch.optim.Adam(N.parameters(), lr=0.001)
 
     epoch = 500
-    check = 0
-    # temp_list = []
 
     for e in range(epoch):
         print("Epoch", e)
         record_losses = []
+
+        check = 0
 
         # feat = features, kp = keypoints, fn = 'cache/coco_train/features/{img}.features.pt'
         for feat, kp, fn in tqdm(data.DataLoader(ds, batch_size=1, num_workers=0)):
@@ -87,7 +87,6 @@ def main():
 
                 if (math.isinf(losses) == True or math.isnan(losses) == True):
                     check += 1
-                    # temp_list.append(fn)
                 else:
                     # All gradient computation
                     optim.zero_grad()
@@ -98,6 +97,7 @@ def main():
             else:
                 inv_channel += 1
 
+        print("Check: ", check)
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
         torch.save(N.state_dict(), f"models/{e:02}.pth")

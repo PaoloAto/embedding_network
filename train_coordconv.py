@@ -71,8 +71,6 @@ def main():
     optim = torch.optim.Adam(N.parameters(), lr=0.0001)
 
     epoch = 500
-    check = 0
-    # temp_list = []
 
     for e in range(epoch):
         print("Epoch", e)
@@ -85,22 +83,18 @@ def main():
                 # losses = dataloader.loss_fn(z, kp, e)
                 losses = loss.loss_fn(z, kp)
 
-                if (math.isinf(losses) == True or math.isnan(losses) == True):
-                    check += 1
-                    # temp_list.append(fn)
-                else:
-                    # All gradient computation
-                    optim.zero_grad()
-                    losses.backward()
-                    optim.step()
+                # All gradient computation
+                optim.zero_grad()
+                losses.backward()
+                optim.step()
 
-                    record_losses.append(losses.item())
+                record_losses.append(losses.item())
             else:
                 inv_channel += 1
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/coordconv_kpu/{e:02}.pth")
+        torch.save(N.state_dict(), f"models/coordconv_kpu_w_inf/{e:02}.pth")
 
         # if (e % 5 == 0):
         #     validation.val()
