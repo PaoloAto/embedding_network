@@ -62,6 +62,34 @@ class CoordNetFirstOnly(nn.Module):
         return self.model(x)
 
 
+class SameNet(nn.Module):
+
+    def __init__(self, in_features, hidden_features=[128, 64, 32]) -> None:
+        super().__init__()
+
+        channels = [in_features * 2, *hidden_features, 1]
+
+        in_channels = channels[:-1]
+        out_channels = channels[1:]
+
+        layers = []
+        for i, o in zip(in_channels, out_channels):
+            layers.append(nn.Linear(i, o))
+            layers.append(nn.ReLU(inplace=True))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, a: torch.Tensor, b: torch.Tensor):
+        BATCH_SIZE, *A_DIMS = a.size()
+        BATCH_SIZE, *B_DIMS = b.size()
+
+        a = a.view(BATCH_SIZE, -1)
+        b = b.view(BATCH_SIZE, -1)
+
+        t = torch.cat([a, b], dim=1)
+        return self.model(t)
+
+
 class CoordNet(nn.Module):
     def __init__(self, in_channels=88):
         super().__init__()

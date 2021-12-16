@@ -22,7 +22,7 @@ def transform(p: str, device="cuda:0"):
     return torch.load(features).to(device=device), torch.load(keypoints).to(device=device)
 
 
-ds = dataloader.ValueDataset(files[40:], transform=transform)
+ds = dataloader.ValueDataset(files[60:], transform=transform)
 
 
 def doview(emb: torch.Tensor, kp: torch.Tensor, sim_out: str, view_out: str):
@@ -70,18 +70,39 @@ def doview(emb: torch.Tensor, kp: torch.Tensor, sim_out: str, view_out: str):
 
 with torch.no_grad():
     N = net.Net().cuda()
-    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
+    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/run(130imgs_1bs_500ep)/499.pth"))
+
+    NO = net.Net().cuda()
+    NO.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
 
     CN = net.CoordNet().cuda()
     CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu/05.pth"))
+
+    CNFKP = net.CoordNet().cuda()
+    CNFKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu_filter_inf/04.pth"))
+
+    CNKP = net.CoordNetFirstOnly().cuda()
+    CNKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_firstLayer/04.pth"))
 
     for ft, kp in dataloader.DataLoader(ds, batch_size=1, shuffle=False):
         emb: torch.Tensor = N(ft)
         kp: torch.Tensor = kp.squeeze(0)
         doview(emb, kp, "visualize/out_base_sim.png", "visualize/out_base_view.png")
 
+        emb: torch.Tensor = NO(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_base_overfit_sim.png", "visualize/out_base_overfit_view.png")
+
         emb: torch.Tensor = CN(ft)
         kp: torch.Tensor = kp.squeeze(0)
         doview(emb, kp, "visualize/out_coord_sim.png", "visualize/out_coord_view.png")
+
+        emb: torch.Tensor = CNFKP(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_filter_sim.png", "visualize/out_coord_kp_filter_view.png")
+
+        emb: torch.Tensor = CNKP(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_1stLay_sim.png", "visualize/out_coord_kp_1stLay_view.png")
 
         exit()

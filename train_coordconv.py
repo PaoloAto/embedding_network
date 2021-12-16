@@ -27,6 +27,8 @@ import cache_coco_kp
 from torchvision import transforms as T
 from torchvision.ops import roi_pool
 
+import pytorch_utils as U
+
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -50,20 +52,20 @@ def main():
     run_type = "train"
 
     if (run_type == "overfit"):
-        feature_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt", transform=loader)
-        keypoint_ds = dataloader.GlobDataset("cache/coco_train/features/*.keypoints.pt", transform=loader)
-        name_ds = dataloader.GlobDataset("cache/coco_train/features/*.features.pt")
-        ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
+        feature_ds = U.data.glob_files("cache/coco_train/features/*.features.pt", transform=loader)
+        keypoint_ds = U.data.glob_files("cache/coco_train/features/*.keypoints.pt", transform=loader)
+        name_ds = U.data.glob_files("cache/coco_train/features/*.features.pt")
+        ds = U.data.dzip(feature_ds, keypoint_ds, name_ds)
     elif (run_type == "train"):
-        feature_ds = dataloader.GlobDataset("cache/hdd_data/features/*.features.pt", transform=loader)
-        keypoint_ds = dataloader.GlobDataset("cache/hdd_data/features/*.keypoints.pt", transform=loader)
-        name_ds = dataloader.GlobDataset("cache/hdd_data/features/*.features.pt")
-        ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
+        feature_ds = U.data.glob_files("cache/hdd_data/features/*.features.pt", transform=loader)
+        keypoint_ds = U.data.glob_files("cache/hdd_data/features/*.keypoints.pt", transform=loader)
+        name_ds = U.data.glob_files("cache/hdd_data/features/*.features.pt")
+        ds = U.data.dzip(feature_ds, keypoint_ds, name_ds)
     else:
-        feature_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt", transform=loader)
-        keypoint_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.keypoints.pt", transform=loader)
-        name_ds = dataloader.GlobDataset("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt")
-        ds = dataloader.ZipDataset(feature_ds, keypoint_ds, name_ds)
+        feature_ds = U.data.glob_files("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt", transform=loader)
+        keypoint_ds = U.data.glob_files("/mnt/5E18698518695D51/Experiments/caching_val/features/*.keypoints.pt", transform=loader)
+        name_ds = U.data.glob_files("/mnt/5E18698518695D51/Experiments/caching_val/features/*.features.pt")
+        ds = U.data.dzip(feature_ds, keypoint_ds, name_ds)
 
     inv_channel = 0
 

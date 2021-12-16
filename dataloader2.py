@@ -21,6 +21,8 @@ from torchvision import transforms as T
 from torchvision.ops import roi_pool
 from net import Net
 
+import pytorch_utils as U
+
 
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
@@ -151,58 +153,68 @@ def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/
     file1.close()
 
 
-class ValueDataset(data.Dataset):
+class LoadCachedFeatureDataset(U.data.Dataset):
 
-    def __init__(self, values, transform=None):
-        from glob import glob
+    def __init__(self, feature_paths, keypoint_paths, size=(80, 100), device="cpu"):
+        features = U.data.glob_files(feature_paths, torch.load)
+        keypoints = U.data.glob_files(keypoint_paths, torch.load)
 
-        self.values = values
-        self.transform = transform or (lambda x: x)
+        if isinstance(size, int):
+            size = (size, size)
+        self.size = size
 
-    def __len__(self):
-        return len(self.values)
+        self.device = device
 
-    def __getitem__(self, index):
-        return self.transform(self.values[index])
+        self.ds = U.data.dzip(features, keypoints, zip_transform=self.process_data)
 
+    def process_data(self, feature: torch.Tensor, keypoint: torch.Tensor):
+        from torchvision.transforms.functional import resize
 
-class GlobDataset(data.Dataset):
+        feature = feature.to(device=self.device)
+        keypoint = keypoint.to(device=self.device).float()
 
-    def __init__(self, *paths, transform=None):
-        from glob import glob
+        c, h, w = feature.size()
+        k, SIX = keypoint.size()
 
-        values = []
-        for p in paths:
-            items = glob(p)
-            for i in items:
-                values.append(i)
+        if c == 86:
+            dup = feature[0:1, :, :]
+            feature = torch.cat([dup, dup, feature], dim=0)
 
-        values.sort()
+        nh, nw = self.size
+        feature = resize(feature, size=(nh, nw))
 
-        self.values = values
-        self.transform = transform or (lambda x: x)
+        rh = nh / h
+        rw = nw / w
 
-    def __len__(self):
-        return len(self.values)
+        keypoint[:, 2:4] *= rw
+        keypoint[:, 4:6] *= rh
 
-    def __getitem__(self, index):
-        return self.transform(self.values[index])
-
-
-class ZipDataset(data.Dataset):
-
-    def __init__(self, *ds):
-        self.ds = ds
+        return feature, keypoint
 
     def __len__(self):
-        return min(map(len, self.ds))
-
-    def getitem0(self, index):
-        for d in self.ds:
-            yield d[index]
+        return len(self.ds)
 
     def __getitem__(self, index):
-        return tuple(self.getitem0(index))
+        return self.ds[index]
+
+
+def collate_fn(data):
+    features = []
+    keypoints = []
+    for i, row in enumerate(data):
+        feature, keypoint = row
+        features.append(feature)
+
+        num_keys, SIX = keypoint.size()
+        index = torch.ones(num_keys, 1, device=keypoint.device) * i
+        keypoint = torch.cat([index, keypoint], dim=1)
+
+        keypoints.append(keypoint)
+
+    features = torch.stack(features, dim=0)
+    keypoints = torch.cat(keypoints, dim=0)
+
+    return features, keypoints
 
 
 def loss_fn(embeddings, keypoints, epoch):
