@@ -123,10 +123,12 @@ def main():
 
 if __name__ == '__main__':
 
-    x = torch.load("cache/coco_train/features/53800.pt").cuda().unsqueeze(0)
-    print(x.size())
+    main()
 
-    net = Net().cuda()
+    # x = torch.load("cache/coco_train/features/53800.pt").cuda().unsqueeze(0)
+    # print(x.size())
+
+    # net = Net().cuda()
 
     # y = net(x)
     # B, C, H, W = y.size()

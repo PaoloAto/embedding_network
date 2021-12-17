@@ -1,6 +1,6 @@
 from pickle import FALSE
 import dataloader
-from net import Net
+import net
 import loss
 # import validation
 
@@ -67,7 +67,7 @@ def main():
 
     inv_channel = 0
 
-    N = Net().cuda()
+    N = net.Net().cuda()
     optim = torch.optim.Adam(N.parameters(), lr=0.001)
 
     epoch = 500

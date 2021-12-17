@@ -22,7 +22,7 @@ def transform(p: str, device="cuda:0"):
     return torch.load(features).to(device=device), torch.load(keypoints).to(device=device)
 
 
-ds = dataloader.ValueDataset(files[60:], transform=transform)
+ds = dataloader.ValueDataset(files[40:], transform=transform)
 
 
 def doview(emb: torch.Tensor, kp: torch.Tensor, sim_out: str, view_out: str):
@@ -76,13 +76,22 @@ with torch.no_grad():
     NO.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
 
     CN = net.CoordNet().cuda()
-    CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu/05.pth"))
+    CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu/00.pth"))
 
-    CNFKP = net.CoordNet().cuda()
-    CNFKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu_filter_inf/04.pth"))
+    NOCN = net.CoordNet().cuda()
+    NOCN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv(no_kpu)/00.pth"))
 
     CNKP = net.CoordNetFirstOnly().cuda()
     CNKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_firstLayer/04.pth"))
+
+    BCN8 = net.CoordNetFirstOnly().cuda()
+    BCN8.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(8)/00.pth"))
+
+    BCN8NOKP = net.CoordNetFirstOnly().cuda()
+    BCN8NOKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(8)/00.pth"))
+
+    BCN100 = net.CoordNetFirstOnly().cuda()
+    BCN100.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(8)/00.pth"))
 
     for ft, kp in dataloader.DataLoader(ds, batch_size=1, shuffle=False):
         emb: torch.Tensor = N(ft)
@@ -97,12 +106,24 @@ with torch.no_grad():
         kp: torch.Tensor = kp.squeeze(0)
         doview(emb, kp, "visualize/out_coord_sim.png", "visualize/out_coord_view.png")
 
-        emb: torch.Tensor = CNFKP(ft)
+        emb: torch.Tensor = NOCN(ft)
         kp: torch.Tensor = kp.squeeze(0)
-        doview(emb, kp, "visualize/out_coord_kp_filter_sim.png", "visualize/out_coord_kp_filter_view.png")
+        doview(emb, kp, "visualize/out_coord_nokp_sim.png", "visualize/out_coord_nokp_view.png")
 
         emb: torch.Tensor = CNKP(ft)
         kp: torch.Tensor = kp.squeeze(0)
         doview(emb, kp, "visualize/out_coord_kp_1stLay_sim.png", "visualize/out_coord_kp_1stLay_view.png")
+
+        emb: torch.Tensor = BCN8(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_batch8_sim.png", "visualize/out_coord_kp_batch8_view.png")
+
+        emb: torch.Tensor = BCN8NOKP(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_batch8_NOKP_sim.png", "visualize/out_coord_kp_batch8_NOKP_view.png")
+
+        emb: torch.Tensor = BCN100(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_batch100_sim.png", "visualize/out_coord_kp_batch100_view.png")
 
         exit()
