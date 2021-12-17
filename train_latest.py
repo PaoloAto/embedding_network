@@ -1,30 +1,12 @@
-import dataloader2
 import pytorch_utils as U
-import net
+import dataloader_clean
+
+from tqdm import tqdm
 import loss
 
-import os
-from os import name
-import torch.utils.data as data
-import numpy as np
-import math
 import torch
 
-from PIL import Image
-import torchvision
-import torchvision.transforms.functional as TF
-import torch.nn.functional as F
-
-from models import Resnet
-from glob import glob
-
-from os import makedirs
-from os.path import join, basename, splitext, exists
-from tqdm import tqdm
-import cache_coco_kp
-
-from torchvision import transforms as T
-from torchvision.ops import roi_pool
+import net
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -32,13 +14,22 @@ writer = SummaryWriter()
 
 def main():
 
-    ds = dataloader2.LoadCachedFeatureDataset("cache/hdd_data/features/*.features.pt", "cache/hdd_data/features/*.keypoints.pt", device="cuda:0")
-    dl = U.data.DataLoader(ds, batch_size=100, collate_fn=dataloader2.collate_fn)
+    ds = dataloader_clean.PifpafDataset(
+        image_paths="cache/coco_train/images/*.jpg",
+        keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
+        pif_paths="/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/*.pt",
+        # paf_paths="",
+        device="cuda:0"
+    )
 
-    N = net.CoordNetFirstOnly().cuda()
+    dl = U.data.DataLoader(ds, batch_size=3, collate_fn=dataloader_clean.collate_fn)
+
+    N = net.CoordNetFirstOnly(597).cuda()
     # N = net.Net().cuda()
 
     optim = torch.optim.Adam(N.parameters(), lr=1e-4)
+
+    batch_process = dataloader_clean.BatchPreprocess(2)
 
     epoch = 1000
 
@@ -47,8 +38,10 @@ def main():
         print("Epoch", e)
         record_losses = []
 
-        for feats, kps in tqdm(dl):
+        for feats, kps, pif in tqdm(dl):
+            feats = batch_process(feats, pif)
             embs = N(feats)
+
             l = loss.loss_fn_batch(embs, kps)
 
             # All gradient computation

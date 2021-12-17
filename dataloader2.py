@@ -29,7 +29,7 @@ import pytorch_utils as U
 
 class ImageWithHeatmapDataset(data.Dataset):
 
-    def __init__(self, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", use_resnet_features=False, resnet_block_idx=-1, heatmap_size=True, device="cuda:0") -> None:
+    def __init__(self, image_paths, heatmap_dir, affinity_path=None, resnet_pretrained="weights/resnet50.pth", use_resnet_features=False, resnet_block_idx=-1, heatmap_size=True, device="cuda:0") -> None:
 
         self.anns = cache_coco_kp.cache_train_data()
 
@@ -39,6 +39,7 @@ class ImageWithHeatmapDataset(data.Dataset):
 
         # /home/hestia/Documents/Experiments/Test/embedding_network/cache_pifpaf_results/field_*/
         self.heatmap_dir = heatmap_dir
+        self.affinity_path = affinity_path
 
         self.device = device
 
@@ -93,15 +94,19 @@ class ImageWithHeatmapDataset(data.Dataset):
     def _heatmap_preprocess(self, image_path):
         filepath = basename(image_path)
         name, ext = splitext(filepath)
-        feature_path = join(self.heatmap_dir, f"{name}.pt")
+        heatmap_path = join(self.heatmap_dir, f"{name}.pt")
+        affinity_path = join(self.affinity_path, f"{name}.pt")
 
-        t = torch.load(feature_path).to(device=self.device)
-        ONE, SEVENTEEN, FIVE, H, W = t.size()
-        assert ONE == 1
-        assert SEVENTEEN == 17
-        assert FIVE == 5
+        th = torch.load(heatmap_path).to(device=self.device)
+        H, W = th.shape[-2:]
+        th = th.view(-1, H, W)
 
-        return t.view(-1, H, W)
+        if self.affinity_path is not None:
+            ta = torch.load(affinity_path).to(device=self.device)
+            ta = ta.view(-1, H, W)
+            return torch.cat([th, ta], dim=0)
+
+        return th
 
 
 def cache_feature(out_dir, image_paths, heatmap_dir, resnet_pretrained="weights/resnet50.pth", block_idx=-1, device="cpu"):
@@ -168,7 +173,7 @@ class LoadCachedFeatureDataset(U.data.Dataset):
         self.ds = U.data.dzip(features, keypoints, zip_transform=self.process_data)
 
     def process_data(self, feature: torch.Tensor, keypoint: torch.Tensor):
-        from torchvision.transforms.functional import resize
+        from torchvision.transforms.functional import resize, normalize
 
         feature = feature.to(device=self.device)
         keypoint = keypoint.to(device=self.device).float()
@@ -182,6 +187,14 @@ class LoadCachedFeatureDataset(U.data.Dataset):
 
         nh, nw = self.size
         feature = resize(feature, size=(nh, nw))
+
+        image = feature[:3, :, :]
+        image = normalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        resnet_features = ResNet(image.unsqueeze(0)).squeeze(0)
+
+        feature = resize(feature, size=(nh, nw))
+
+        feature = torch.cat([resnet_features, feature[3:, :, :]], dim=0)
 
         rh = nh / h
         rw = nw / w

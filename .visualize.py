@@ -69,11 +69,11 @@ def doview(emb: torch.Tensor, kp: torch.Tensor, sim_out: str, view_out: str):
 
 
 with torch.no_grad():
-    N = net.Net().cuda()
-    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/run(130imgs_1bs_500ep)/499.pth"))
-
     NO = net.Net().cuda()
-    NO.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
+    NO.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/run(130imgs_1bs_500ep)/499.pth"))
+
+    N = net.Net().cuda()
+    N.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/full(normConv)/12.pth"))
 
     CN = net.CoordNet().cuda()
     CN.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/coordconv_kpu/00.pth"))
@@ -91,7 +91,10 @@ with torch.no_grad():
     BCN8NOKP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(8)/00.pth"))
 
     BCN100 = net.CoordNetFirstOnly().cuda()
-    BCN100.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(8)/00.pth"))
+    BCN100.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(100)/00.pth"))
+
+    BCN150 = net.CoordNetFirstOnly().cuda()
+    BCN150.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/batch_coordconv(150)/00.pth"))
 
     for ft, kp in dataloader.DataLoader(ds, batch_size=1, shuffle=False):
         emb: torch.Tensor = N(ft)
@@ -125,5 +128,9 @@ with torch.no_grad():
         emb: torch.Tensor = BCN100(ft)
         kp: torch.Tensor = kp.squeeze(0)
         doview(emb, kp, "visualize/out_coord_kp_batch100_sim.png", "visualize/out_coord_kp_batch100_view.png")
+
+        emb: torch.Tensor = BCN150(ft)
+        kp: torch.Tensor = kp.squeeze(0)
+        doview(emb, kp, "visualize/out_coord_kp_batch150_sim.png", "visualize/out_coord_kp_batch150_view.png")
 
         exit()

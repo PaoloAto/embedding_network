@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import math
 
+
 class PIF(nn.Module):
 
     def __init__(self, in_channels=2048, out_channels=340, kernel_size=1, padding=10, upscale=2, dropout=0.0, inplace=True):
@@ -11,7 +12,6 @@ class PIF(nn.Module):
         self.dropout = torch.nn.Dropout2d(p=dropout)
         self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding, dilation=1)
         self.upsample = torch.nn.PixelShuffle(upscale)
-
 
     def forward(self, x):  # pylint: disable=arguments-differ
         x = self.dropout(x)
@@ -44,6 +44,7 @@ class PIF(nn.Module):
         )
         return x
 
+
 class Resnet(nn.Module):
     pretrained = True
     pool0_stride = 0
@@ -52,10 +53,10 @@ class Resnet(nn.Module):
     remove_last_block = False
     block5_dilation = 1
 
-    def __init__(self, torchvision_resnet=None, output_block_idx=-1, out_features=2048):
+    def __init__(self, torchvision_resnet=None, output_block_idx=-1, preprocessing=True, out_features=2048):
         super().__init__()
 
-        self.output_block_idx=output_block_idx
+        self.output_block_idx = output_block_idx
 
         if torchvision_resnet is None:
             from torchvision.models.resnet import resnet50 as torchvision_resnet
@@ -120,7 +121,9 @@ class Resnet(nn.Module):
         self.block4 = modules[6]
         self.block5 = block5
 
-    def forward(self, x):
+        self.prerocessing = preprocessing
+
+    def forward(self, x: torch.Tensor):
         blocks = [
             self.input_block,
             self.block2,
@@ -128,6 +131,11 @@ class Resnet(nn.Module):
             self.block4,
             self.block5
         ]
+
+        if self.prerocessing:
+            mean = torch.tensor([0.485, 0.456, 0.406], device=x.device).view(1, 3, 1, 1)
+            std = torch.tensor([0.229, 0.224, 0.225], device=x.device).view(1, 3, 1, 1)
+            x = (x - mean) / std
 
         for block_idx, block in enumerate(blocks):
             x = block(x)
