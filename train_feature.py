@@ -22,7 +22,7 @@ def main():
         device="cuda:0"
     )
 
-    dl = U.data.DataLoader(ds, batch_size=3, collate_fn=dataloader_clean.collate_fn)
+    dl = U.data.DataLoader(ds, batch_size=2, collate_fn=dataloader_clean.collate_fn)
 
     N = net.CoordNetFirstOnly(597).cuda()
     # N = net.Net().cuda()
@@ -53,7 +53,7 @@ def main():
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/batch_coordconv(100)/{e:02}.pth")
+        torch.save(N.state_dict(), f"models/feature_coordconv(2)/{e:02}.pth")
 
 
 if __name__ == '__main__':

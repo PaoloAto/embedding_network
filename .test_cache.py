@@ -4,6 +4,7 @@ from tqdm import tqdm
 import dataloader_clean
 import pytorch_utils as U
 
+
 ds = dataloader_clean.PifpafDataset(
     image_paths="cache/coco_train/images/*.jpg",
     keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
@@ -26,8 +27,6 @@ def transform(arg):
 
 
 ds2 = U.data.dmap(ds, transform)
-
-
 ds3 = U.data.dcache_tensor(ds2, "/mnt/5E18698518695D51/Experiments/caching/res_features/{idx}.pt")
 
 
