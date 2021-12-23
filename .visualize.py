@@ -139,13 +139,13 @@ with torch.no_grad():
     FCN2.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_coordconv(2)/01.pth"))
 
     FCNFL = net.CoordNetFirstOnly(597).cuda()
-    FCNFL.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_coordconv_cached(float16)/06.pth"))
+    FCNFL.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_coordconv_cached(float16)/09.pth"))
 
     FCNORM = net.Net(597).cuda()
     FCNORM.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_normconv_cached(float16)/06.pth"))
 
     FCOORD = net.CoordNet(597).cuda()
-    FCOORD.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_fullcoord_cached(float16)/06.pth"))
+    FCOORD.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_fullcoord_cached(float16)/10.pth"))
 
     ds_new = dataloader_clean.PifpafDataset(
         image_paths="cache/coco_train/images/*.jpg",
