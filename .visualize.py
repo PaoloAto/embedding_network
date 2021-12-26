@@ -147,6 +147,9 @@ with torch.no_grad():
     FCOORD = net.CoordNet(597).cuda()
     FCOORD.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_fullcoord_cached(float16)/15.pth"))
 
+    FSIM = net.CoordNetFirstOnly(597).cuda()
+    FSIM.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_sim/19.features.pth"))
+
     ds_new = dataloader_clean.PifpafDataset(
         image_paths="cache/coco_train/images/*.jpg",
         keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
@@ -171,5 +174,8 @@ with torch.no_grad():
 
         emb: torch.Tensor = FCOORD(ft)
         doview(emb, kp, "visualize/out_fullcoord_kp_feature_cached_sim.png", "visualize/out_fullcoord_kp_feature_cached_view.png")
+
+        emb: torch.Tensor = FSIM(ft)
+        doview(emb, kp, "visualize/out_sim_cached_sim.png", "visualize/out_sim_cached_sim.png")
 
         break

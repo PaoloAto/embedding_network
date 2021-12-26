@@ -5,19 +5,106 @@ import pytorch_utils as U
 import torchvision.transforms.functional as TF
 
 
-class PifpafDataset(U.data.Dataset):
-
-    def __init__(self, image_paths, keypoint_paths, pif_paths=None, paf_paths=None, pif_size=(80, 100), device="cuda:0"):
+class ResnetKeypointsDataset(U.data.Dataset):
+    def __init__(
+        self,
+        image_paths,
+        keypoint_paths,
+        size=(640, 800),
+        resnet_block_output=3,
+        resnet_preprocessing=True,
+        device="cuda:0",
+    ):
 
         self.images = U.data.glob_files(image_paths, transform=self.load_image_features)
-        self.keypoints = U.data.glob_files(keypoint_paths, transform=self.load_cached_keypoints)
+        self.keypoints = U.data.glob_files(
+            keypoint_paths, transform=self.load_cached_keypoints
+        )
+        self.ds = U.data.dzip(
+            self.images, self.keypoints, zip_transform=self.combine_all
+        )
+
+        self.resnet = None
+
+        self.size = size
+        self.device = device
+        self.resnet_block_output = resnet_block_output
+        self.resnet_preprocessing = resnet_preprocessing
+
+    def __len__(self):
+        return len(self.ds)
+
+    def __getitem__(self, index):
+        return self.ds[index]
+
+    def combine_all(self, img: torch.Tensor, kps: torch.Tensor):
+        img = TF.resize(img, size=self.size)
+
+        img_nh, img_nw = self.size
+        img_h, img_w = img.shape[-2:]
+
+        rh = img_nh / img_h
+        rw = img_nw / img_w
+
+        kps[:, 2:4] *= rw
+        kps[:, 4:6] *= rh
+
+        img = img.to(device=self.device)
+        kps = kps.to(device=self.device)
+
+        return img, kps
+
+    def load_cached_keypoints(self, path):
+        return torch.load(path).float()
+
+    def load_image_features(self, path):
+        from PIL import Image
+
+        img = Image.open(path)
+        img = TF.to_tensor(img).to(device=self.device)
+        if img.size(0) == 1:
+            return img.repeat(3, 1, 1)
+
+        if self.resnet is None:
+            from models import Resnet
+
+            self.resnet = Resnet(
+                output_block_idx=self.resnet_block_output,
+                preprocessing=self.resnet_preprocessing,
+            ).to(device=self.device)
+        return self.resnet(img.unsqueeze(0)).squeeze(0)
+
+
+class PifpafDataset(U.data.Dataset):
+    def __init__(
+        self,
+        image_paths,
+        keypoint_paths,
+        pif_paths=None,
+        paf_paths=None,
+        pif_size=(80, 100),
+        device="cuda:0",
+    ):
+
+        self.images = U.data.glob_files(image_paths, transform=self.load_image_features)
+        self.keypoints = U.data.glob_files(
+            keypoint_paths, transform=self.load_cached_keypoints
+        )
         self.pifs = U.data.glob_files(pif_paths, transform=self.load_cached_pifpaf)
 
         if paf_paths is not None:
             self.pafs = U.data.glob_files(paf_paths, transform=self.load_cached_pifpaf)
-            self.ds = U.data.dzip(self.images, self.keypoints, self.pifs, self.pafs, zip_transform=self.combine_all)
+            self.ds = U.data.dzip(
+                self.images,
+                self.keypoints,
+                self.pifs,
+                self.pafs,
+                zip_transform=self.combine_all,
+            )
         else:
-            self.ds = U.data.dzip(self.images, self.keypoints, self.pifs, zip_transform=self.combine_all)
+            self.ds = U.data.dzip(
+                self.images, self.keypoints, self.pifs, zip_transform=self.combine_all
+            )
 
         if isinstance(pif_size, int):
             pif_size = (pif_size, pif_size)
@@ -31,7 +118,9 @@ class PifpafDataset(U.data.Dataset):
     def __getitem__(self, index):
         return self.ds[index]
 
-    def combine_all(self, img: torch.Tensor, kps: torch.Tensor, pif: torch.Tensor, *args):
+    def combine_all(
+        self, img: torch.Tensor, kps: torch.Tensor, pif: torch.Tensor, *args
+    ):
         paf: torch.Tensor = args[0] if len(args) > 0 else None
 
         pif_h, pif_w = pif.shape[-2:]
@@ -67,6 +156,7 @@ class PifpafDataset(U.data.Dataset):
 
     def load_image_features(self, path):
         from PIL import Image
+
         img = Image.open(path)
         img = TF.to_tensor(img).to(device=self.device)
         if img.size(0) == 1:
@@ -75,7 +165,6 @@ class PifpafDataset(U.data.Dataset):
 
 
 class BatchPreprocess:
-
     def __init__(self, resnet_block_output=3, preprocessing=True, device="cuda:0"):
         self.resnet_block_output = resnet_block_output
         self.preprocessing = preprocessing
@@ -86,13 +175,18 @@ class BatchPreprocess:
     def __call__(self, img: torch.Tensor, pif: torch.Tensor, paf: torch.Tensor = None):
         if self.feature_extractor is None:
             from models import Resnet
-            self.feature_extractor = Resnet(output_block_idx=self.resnet_block_output, preprocessing=self.preprocessing).to(device=self.device)
+
+            self.feature_extractor = Resnet(
+                output_block_idx=self.resnet_block_output,
+                preprocessing=self.preprocessing,
+            ).to(device=self.device)
 
         out = []
 
         img = self.feature_extractor(img)
 
         from torch.nn.functional import interpolate
+
         pif_h, pif_w = pif.shape[-2:]
 
         img = interpolate(img, size=(pif_h, pif_w), mode="bilinear")

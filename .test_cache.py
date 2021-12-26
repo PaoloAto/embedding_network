@@ -6,9 +6,9 @@ import pytorch_utils as U
 
 
 ds = dataloader_clean.PifpafDataset(
-    image_paths="cache/coco_train/images/*.jpg",
-    keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
-    pif_paths="/mnt/5E18698518695D51/Experiments/caching/cache_pifpaf_results/17/*.pt",
+    image_paths="cache/coco_val/images/*.jpg",
+    keypoint_paths="cache/hdd_data_val/features/*.keypoints.pt",
+    pif_paths="/mnt/5E18698518695D51/Experiments/caching_val/cache_pifpaf_results/17/*.pt",
     # paf_paths="",
     device="cuda:0"
 )
@@ -27,7 +27,7 @@ def transform(arg):
 
 
 ds2 = U.data.dmap(ds, transform)
-ds3 = U.data.dcache_tensor(ds2, "/mnt/5E18698518695D51/Experiments/caching/res_features/{idx}.pt")
+ds3 = U.data.dcache_tensor(ds2, "/mnt/5E18698518695D51/Experiments/caching_val/res_features/{idx}.pt")
 
 
 print(len(ds3))
