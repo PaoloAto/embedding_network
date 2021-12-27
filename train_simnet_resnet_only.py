@@ -17,7 +17,6 @@ writer = SummaryWriter()
 
 def main():
 
-
     ds = dataloader_clean.ResnetKeypointsDataset(
         image_paths="cache/coco_train/images/*.jpg",
         keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
@@ -25,7 +24,7 @@ def main():
     )
     # ds = U.data.dcache_tensor(ds, ".cache/ResnetKeypointsDataset/{idx}.pt")
 
-    dl = U.data.DataLoader(ds, batch_size=3, collate_fn=dataloader2.collate_fn)
+    dl = U.data.DataLoader(ds, batch_size=2, collate_fn=dataloader2.collate_fn)
 
     N = net.CoordNetFirstOnly(512).cuda()
     S = net.SameNet(512).cuda()

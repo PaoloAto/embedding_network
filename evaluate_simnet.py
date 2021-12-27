@@ -64,9 +64,11 @@ for feats, kps in tqdm(dl):
     stats += loss.evaluate(embs, kps, S).cpu().numpy()
 
     print(
-        "TruePositiveRate", (stats[TRUE_POSITIVE] / stats[TOTAL_POSITIVE]),
-        "TrueNegativeRate", (stats[TRUE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
-        "Stats", stats
+        "TruePositiveRate:", (stats[TRUE_POSITIVE] / stats[TOTAL_POSITIVE]),
+        ", TrueNegativeRate:", (stats[TRUE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
+        ", FalsePositiveRate:", (stats[FALSE_POSITIVE] / stats[TOTAL_POSITIVE]),
+        ", FalseNegativeRate:", (stats[FALSE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
+        ", Stats:", stats
     )
 
 print(stats)

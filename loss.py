@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from torchvision import transforms as T
 from torchvision.ops import roi_pool
 
+from sklearn.cluster import AgglomerativeClustering
+
 
 def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True):  # , eps=1e-7
     loss = 0
@@ -321,3 +323,6 @@ def grouping_coords(coords: torch.Tensor, pairdists: torch.Tensor):
     groupings = None
 
     assert groupings.size() == (NUM_KP, NUM_KP)
+
+    # cluster = AgglomerativeClustering(n_clusters=None, affinity='precomputed', linkage='average', distance_threshold=15)
+    # cluster_labels = cluster.fit_predict(dis)

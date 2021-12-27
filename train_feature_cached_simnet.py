@@ -49,7 +49,7 @@ def main():
     ds_batch_preprocess = U.data.dmap(ds_base, transform)
     ds_cached = U.data.dcache_tensor(ds_batch_preprocess, "/mnt/5E18698518695D51/Experiments/caching/res_features/{idx}.pt")
 
-    dl = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2.collate_fn)
+    dl = U.data.DataLoader(ds_cached, batch_size=5, collate_fn=dataloader2.collate_fn)
 
     N = net.CoordNetFirstOnly(597).cuda()
     S = net.SameNet(512).cuda()
