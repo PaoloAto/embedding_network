@@ -55,20 +55,39 @@ TOTAL_NEGATIVE = 5
 POSITIVE = True
 NEGATIVE = False
 
+CLASS_MATCH = 0
+CLASS_MISMATCH = 1
+TOTAL_MATCHES = 2
+
 stats = 0
+stats_class = 0
+
 for feats, kps in tqdm(dl):
     feats = feats.squeeze_(1).float()
     kps = kps.float()
     embs = N(feats)
 
-    stats += loss.evaluate(embs, kps, S).cpu().numpy()
+    stat, stat_class = loss.evaluate(embs, kps, S)
+    stats += stat.cpu().numpy()
+    stats_class += stat_class.cpu().numpy()
+
+    precision = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_POSITIVE])
+    recall = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_NEGATIVE])
+    f1 = 2 * precision * recall / (precision + recall)
 
     print(
         "TruePositiveRate:", (stats[TRUE_POSITIVE] / stats[TOTAL_POSITIVE]),
         ", TrueNegativeRate:", (stats[TRUE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
-        ", FalsePositiveRate:", (stats[FALSE_POSITIVE] / stats[TOTAL_POSITIVE]),
-        ", FalseNegativeRate:", (stats[FALSE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
+        ", Precision:", precision,
+        ", Recall:", recall,
+        ", f1:", f1,
         ", Stats:", stats
+    )
+
+    print(
+        "ClassMatchRate:", (stats_class[CLASS_MATCH] / stats_class[TOTAL_MATCHES]),
+        ", ClassMismatchRate:", (stats_class[CLASS_MISMATCH] / stats_class[TOTAL_MATCHES]),
+        ", Stats:", stats_class
     )
 
 print(stats)

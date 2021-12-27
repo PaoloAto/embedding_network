@@ -176,6 +176,6 @@ with torch.no_grad():
         doview(emb, kp, "visualize/out_fullcoord_kp_feature_cached_sim.png", "visualize/out_fullcoord_kp_feature_cached_view.png")
 
         emb: torch.Tensor = FSIM(ft)
-        doview(emb, kp, "visualize/out_sim_cached_sim.png", "visualize/out_sim_cached_sim.png")
+        doview(emb, kp, "visualize/out_sim_cached_sim.png", "visualize/out_sim_cached_view.png")
 
         break

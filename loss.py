@@ -281,7 +281,12 @@ def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
     POSITIVE = True
     NEGATIVE = False
 
+    CLASS_MATCH = 0
+    CLASS_MISMATCH = 1
+    TOTAL_MATCHES = 2
+
     stats = torch.Tensor([0, 0, 0, 0, 0, 0]).cuda()
+    stats_class = torch.Tensor([0, 0, 0]).cuda()
 
     for batch_idx in torch.unique(all_batch_idxs):
 
@@ -313,16 +318,28 @@ def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
                         stats[FALSE_POSITIVE] += (pred == POSITIVE).sum()
                         stats[TOTAL_NEGATIVE] += pred.size(0)
 
-    return stats
+        groupings_gt: torch.Tensor = all_obj_idxs.int().clone()
+        for canon_group_idx, group_idx in enumerate(torch.unique(all_obj_idxs)):
+            groupings_gt[all_obj_idxs == group_idx] = canon_group_idx
+
+        groupings_pred: torch.Tensor = grouping_coords(boxes)
+
+        stats_class[CLASS_MATCH] = (groupings_gt == groupings_pred).sum()
+        stats_class[CLASS_MISMATCH] = (groupings_gt != groupings_pred).sum()
+        stats_class[TOTAL_MATCHES] = groupings_pred.size(0)
+
+    return stats, stats_class
 
 
-def grouping_coords(coords: torch.Tensor, pairdists: torch.Tensor):
+def grouping_coords(coords: torch.Tensor):
     NUM_KP, BOX = coords.size()
-    assert pairdists.size() == (NUM_KP, NUM_KP)
 
-    groupings = None
+    if NUM_KP == 1:
+        return torch.tensor([0], device=coords.device)
 
-    assert groupings.size() == (NUM_KP, NUM_KP)
+    cluster = AgglomerativeClustering(n_clusters=None, affinity='euclidean', linkage='average', distance_threshold=2.0)
+    groupings = cluster.fit_predict(coords.cpu().numpy())
 
-    # cluster = AgglomerativeClustering(n_clusters=None, affinity='precomputed', linkage='average', distance_threshold=15)
-    # cluster_labels = cluster.fit_predict(dis)
+    assert groupings.shape == (NUM_KP,)
+
+    return torch.tensor(groupings, device=coords.device)
