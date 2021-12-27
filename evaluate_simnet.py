@@ -73,6 +73,7 @@ for feats, kps in tqdm(dl):
 
     precision = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_POSITIVE])
     recall = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_NEGATIVE])
+    accuracy = (TRUE_POSITIVE + TRUE_NEGATIVE) / (TRUE_POSITIVE + TRUE_NEGATIVE + FALSE_POSITIVE + FALSE_NEGATIVE)
     f1 = 2 * precision * recall / (precision + recall)
 
     print(
@@ -80,6 +81,7 @@ for feats, kps in tqdm(dl):
         ", TrueNegativeRate:", (stats[TRUE_NEGATIVE] / stats[TOTAL_NEGATIVE]),
         ", Precision:", precision,
         ", Recall:", recall,
+        ", Accuracy:", accuracy,
         ", f1:", f1,
         ", Stats:", stats
     )
