@@ -49,11 +49,11 @@ def main():
     ds_batch_preprocess = U.data.dmap(ds_base, transform)
     ds_cached = U.data.dcache_tensor(ds_batch_preprocess, "/mnt/5E18698518695D51/Experiments/caching/res_features/{idx}.pt")
 
-    dl = U.data.DataLoader(ds_cached, batch_size=5, collate_fn=dataloader2.collate_fn)
+    dl = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2.collate_fn)
 
-    N = net.CoordNetFirstOnly(597).cuda()
+    # N = net.CoordNetFirstOnly(597).cuda()
     S = net.SameNet(512).cuda()
-    # N = net.Net(597).cuda()
+    N = net.Net(597).cuda()
     # N = net.CoordNet(597).cuda()
 
     optim = torch.optim.Adam(list(N.parameters()) + list(S.parameters()), lr=1e-4)
@@ -81,8 +81,8 @@ def main():
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/feature_sim/{e:02}.features.pth")
-        torch.save(S.state_dict(), f"models/feature_sim/{e:02}.classifier.pth")
+        torch.save(N.state_dict(), f"models/feature_sim_norm/{e:02}.features.pth")
+        torch.save(S.state_dict(), f"models/feature_sim_norm/{e:02}.classifier.pth")
 
 
 if __name__ == '__main__':

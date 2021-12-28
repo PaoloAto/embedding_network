@@ -1,3 +1,4 @@
+import torchvision
 import torch
 
 import dataloader2
@@ -37,7 +38,10 @@ def transform(arg):
 ds_batch_preprocess = U.data.dmap(ds_base, transform)
 ds_cached = U.data.dcache_tensor(ds_batch_preprocess, "/mnt/5E18698518695D51/Experiments/caching/res_features/{idx}.pt")
 
-dl = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2.collate_fn)
+ds_images = U.data.dmap(ds_base, lambda arg: arg[0])
+
+dl_images = U.data.DataLoader(ds_images, batch_size=50)
+dl_features = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2.collate_fn)
 
 N = net.CoordNetFirstOnly(597).cuda()
 N.load_state_dict(torch.load("models/feature_sim/19.features.pth"))
@@ -62,12 +66,12 @@ TOTAL_MATCHES = 2
 stats = 0
 stats_class = 0
 
-for feats, kps in tqdm(dl):
+for idx, img, (feats, kps) in zip(tqdm(range(len(dl_images))), dl_images, dl_features):
     feats = feats.squeeze_(1).float()
     kps = kps.float()
     embs = N(feats)
 
-    stat, stat_class = loss.evaluate(embs, kps, S)
+    stat, stat_class = loss.evaluate_visualization(embs, kps, S, img)
     stats += stat.cpu().numpy()
     stats_class += stat_class.cpu().numpy()
 
@@ -87,9 +91,10 @@ for feats, kps in tqdm(dl):
     )
 
     print(
-        "ClassMatchRate:", (stats_class[CLASS_MATCH] / stats_class[TOTAL_MATCHES]),
+        ", ClassMatchRate:", (stats_class[CLASS_MATCH] / stats_class[TOTAL_MATCHES]),
         ", ClassMismatchRate:", (stats_class[CLASS_MISMATCH] / stats_class[TOTAL_MATCHES]),
-        ", Stats:", stats_class
+        ", MatchStats:", stats_class
     )
 
-print(stats)
+
+torchvision.utils.save_image(t, "")

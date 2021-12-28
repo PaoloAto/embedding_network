@@ -87,9 +87,7 @@ class PifpafDataset(U.data.Dataset):
     ):
 
         self.images = U.data.glob_files(image_paths, transform=self.load_image_features)
-        self.keypoints = U.data.glob_files(
-            keypoint_paths, transform=self.load_cached_keypoints
-        )
+        self.keypoints = U.data.glob_files(keypoint_paths, transform=self.load_cached_keypoints)
         self.pifs = U.data.glob_files(pif_paths, transform=self.load_cached_pifpaf)
 
         if paf_paths is not None:
@@ -102,9 +100,7 @@ class PifpafDataset(U.data.Dataset):
                 zip_transform=self.combine_all,
             )
         else:
-            self.ds = U.data.dzip(
-                self.images, self.keypoints, self.pifs, zip_transform=self.combine_all
-            )
+            self.ds = U.data.dzip(self.images, self.keypoints, self.pifs, zip_transform=self.combine_all)
 
         if isinstance(pif_size, int):
             pif_size = (pif_size, pif_size)
@@ -118,9 +114,7 @@ class PifpafDataset(U.data.Dataset):
     def __getitem__(self, index):
         return self.ds[index]
 
-    def combine_all(
-        self, img: torch.Tensor, kps: torch.Tensor, pif: torch.Tensor, *args
-    ):
+    def combine_all(self, img: torch.Tensor, kps: torch.Tensor, pif: torch.Tensor, *args):
         paf: torch.Tensor = args[0] if len(args) > 0 else None
 
         pif_h, pif_w = pif.shape[-2:]
