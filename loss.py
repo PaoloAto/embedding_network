@@ -262,6 +262,12 @@ def loss_fn_batch_sim(
     return loss
 
 
+def compute_intersection(a, b):
+    assert isinstance(a, list)
+    assert isinstance(b, list)
+    return len(np.unique(a + b))
+
+
 @torch.no_grad()
 def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
 
@@ -285,8 +291,8 @@ def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
     CLASS_MISMATCH = 1
     TOTAL_MATCHES = 2
 
-    stats = torch.Tensor([0, 0, 0, 0, 0, 0]).cuda().requires_grad_(False)
-    stats_class = torch.Tensor([0, 0, 0]).cuda().requires_grad_(False)
+    stats = torch.Tensor([0, 0, 0, 0, 0, 0]).to(device=embeddings.device).requires_grad_(False)
+    stats_class = torch.Tensor([0, 0, 0]).to(device=embeddings.device).requires_grad_(False)
 
     for batch_idx in torch.unique(all_batch_idxs):
 
@@ -318,14 +324,57 @@ def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
                         stats[FALSE_POSITIVE] += (pred == POSITIVE).sum()
                         stats[TOTAL_NEGATIVE] += pred.size(0)
 
-        groupings_gt: torch.Tensor = all_obj_idxs.int().clone()
-        for canon_group_idx, group_idx in enumerate(torch.unique(all_obj_idxs)):
-            groupings_gt[all_obj_idxs == group_idx] = canon_group_idx
+        groupings_gt: np.ndarray = all_obj_idxs.int().cpu().numpy()
+        groupings_pred: np.ndarray = grouping_coords(boxes, len(torch.unique(all_obj_idxs))).cpu().numpy()
 
-        groupings_pred_raw: torch.Tensor = grouping_coords(boxes, len(torch.unique(all_obj_idxs)))
-        groupings_pred: torch.Tensor = all_obj_idxs.int().clone()
-        for canon_group_idx, group_idx in enumerate(torch.unique(groupings_pred_raw)):
-            groupings_pred[groupings_pred_raw == group_idx] = canon_group_idx
+        db_gt = {}
+        db_pred = {}
+
+        for idx, group_id in enumerate(groupings_gt):
+            if group_id not in db_gt:
+                db_gt[group_id] = []
+            db_gt[group_id].append(idx)
+        for idx, group_id in enumerate(groupings_pred):
+            if group_id not in db_pred:
+                db_pred[group_id] = []
+            db_pred[group_id].append(idx)
+
+        assignment = np.ones((len(db_gt), len(db_pred)))
+
+        for gt_idx, (gt_group, gt_values) in enumerate(db_gt.items()):
+            for pred_idx, (pred_group, pred_values) in enumerate(db_pred.items()):
+                assignment[gt_idx, pred_idx] = len(np.intersect1d(gt_values, pred_values, assume_unique=True))
+
+        assignment = assignment.max() - assignment
+        import munkres
+
+        assignment = munkres.linear_assignment(assignment)
+
+        gt_groups = list(db_gt.keys())
+        pred_groups = list(db_pred.keys())
+
+        groupings_pred_new: np.ndarray = groupings_pred.copy()
+        for gt_idx, pred_idx in assignment:
+            gt_group = gt_groups[gt_idx]
+            pred_group = pred_groups[pred_idx]
+            groupings_pred_new[groupings_pred == pred_group] = gt_group
+
+        groupings_gt = torch.tensor(groupings_gt, device=embeddings.device)
+        groupings_pred = torch.tensor(groupings_pred_new, device=embeddings.device)
+
+        # groupings_gt: torch.Tensor = all_obj_idxs.int().clone()
+        # temp_idxs = list(torch.unique(groupings_pred_raw).cpu().numpy())
+        # temp_idxs.sort()
+        # for canon_group_idx, group_idx in enumerate(temp_idxs):
+        #     groupings_gt[all_obj_idxs == group_idx] = canon_group_idx
+
+        # groupings_pred_raw: torch.Tensor = grouping_coords(boxes, len(torch.unique(all_obj_idxs)))
+        # temp_idxs = list(torch.unique(groupings_pred_raw).cpu().numpy())
+        # temp_idxs.sort()
+
+        # groupings_pred: torch.Tensor = all_obj_idxs.int().clone()
+        # for canon_group_idx, group_idx in enumerate(temp_idxs):
+        #     groupings_pred[groupings_pred_raw == group_idx] = canon_group_idx
 
         # print(list(groupings_gt.cpu().numpy()))
         # print(list(groupings_pred.cpu().numpy()))

@@ -73,7 +73,7 @@ for feats, kps in tqdm(dl):
 
     precision = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_POSITIVE])
     recall = stats[TRUE_POSITIVE] / (stats[TRUE_POSITIVE] + stats[FALSE_NEGATIVE])
-    accuracy = (TRUE_POSITIVE + TRUE_NEGATIVE) / (TRUE_POSITIVE + TRUE_NEGATIVE + FALSE_POSITIVE + FALSE_NEGATIVE)
+    accuracy = (stats[TRUE_POSITIVE] + stats[TRUE_NEGATIVE]) / (stats[TRUE_POSITIVE] + stats[TRUE_NEGATIVE] + stats[FALSE_NEGATIVE] + stats[FALSE_POSITIVE])
     f1 = 2 * precision * recall / (precision + recall)
 
     print(
