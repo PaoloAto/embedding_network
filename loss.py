@@ -487,6 +487,7 @@ def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5):
         stats_class[CLASS_MISMATCH] += (groupings_gt != groupings_pred).sum()
         stats_class[TOTAL_MATCHES] += groupings_pred.size(0)
 
+        # Image Visualization
         img_item = img[batch_idx.long()]
         img_item = TF.to_pil_image(img_item / img_item.max())
         plt.imshow(img_item)
