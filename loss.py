@@ -18,7 +18,8 @@ from pytorch_metric_learning.regularizers import LpRegularizer
 from pytorch_metric_learning import losses, miners
 
 miner = miners.MultiSimilarityMiner()
-loss_func = losses.ContrastiveLoss()
+# loss_func = losses.ContrastiveLoss()
+loss_func = losses.TripletMarginLoss(margin=1.0)
 # loss_func = losses.TripletMarginLoss(distance=CosineSimilarity(), reducer=AvgNonZeroReducer(), embedding_regularizer=LpRegularizer())
 
 
@@ -222,6 +223,7 @@ def loss_fn_batch_sim(
         #             loss_metric += -score  # + eps
 
     loss_metric /= B
+    loss_metric *= 10
     loss += loss_metric
 
     stats["loss_metric"] = loss_metric.detach().cpu().numpy()
@@ -268,6 +270,7 @@ def loss_fn_batch_sim(
                 #         loss_sim_denom += 1
 
         loss_sim /= loss_sim_denom / B
+        loss_sim *= 0.33
         loss += loss_sim
 
         stats["loss_sim"] = loss_sim.detach().cpu().numpy()

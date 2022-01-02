@@ -64,6 +64,7 @@ def main(directory, logdir):
     S = net.SameNet(128).cuda()
 
     optim = torch.optim.Adam(list(N.parameters()) + list(S.parameters()), lr=1e-4)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, 0.7)
 
     epoch = 1000
 
@@ -79,7 +80,7 @@ def main(directory, logdir):
             kps = kps.float()
             embs = N(feats)
 
-            l, stats = loss.loss_fn_batch_sim(embs, kps, S, output_size=1)
+            l, stats = loss.loss_fn_batch_sim(embs, kps, S, output_size=1, keypoint_uniqueness_loss=False)
 
             for name, value in stats.items():
                 writer.add_scalar(name, value, global_step=step)
@@ -92,6 +93,10 @@ def main(directory, logdir):
             optim.zero_grad()
             l.backward()
             optim.step()
+
+            if step % 200 == 0:
+                scheduler.step()
+                print("Optimizer LR update", optim.param_groups[0]["lr"])
 
             record_losses.append(l.item())
 
