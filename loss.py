@@ -13,12 +13,13 @@ from torchvision.ops import roi_pool
 from sklearn.cluster import AgglomerativeClustering
 
 from pytorch_metric_learning.distances import CosineSimilarity
-from pytorch_metric_learning.reducers import ThresholdReducer
+from pytorch_metric_learning.reducers import AvgNonZeroReducer
 from pytorch_metric_learning.regularizers import LpRegularizer
 from pytorch_metric_learning import losses, miners
 
 miner = miners.MultiSimilarityMiner()
-loss_func = losses.TripletMarginLoss(distance=CosineSimilarity(), reducer=ThresholdReducer(high=0.3), embedding_regularizer=LpRegularizer())
+loss_func = losses.ContrastiveLoss()
+# loss_func = losses.TripletMarginLoss(distance=CosineSimilarity(), reducer=AvgNonZeroReducer(), embedding_regularizer=LpRegularizer())
 
 
 def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True):  # , eps=1e-7
@@ -177,6 +178,8 @@ def loss_fn_batch_sim(
 
     loss_metric = 0
 
+    stats = {}
+
     for batch_idx in torch.unique(all_batch_idxs):
 
         keypoint_subset = keypoints[all_batch_idxs == batch_idx, 1:]
@@ -218,7 +221,10 @@ def loss_fn_batch_sim(
         #         if score > 0:
         #             loss_metric += -score  # + eps
 
-    loss += loss_metric / B
+    loss_metric /= B
+    loss += loss_metric
+
+    stats["loss_metric"] = loss_metric.detach().cpu().numpy()
 
     if sim_fn is not None:
         loss_sim = 0
@@ -261,7 +267,10 @@ def loss_fn_batch_sim(
                 #         loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
                 #         loss_sim_denom += 1
 
-        loss += loss_sim / B / loss_sim_denom
+        loss_sim /= loss_sim_denom / B
+        loss += loss_sim
+
+        stats["loss_sim"] = loss_sim.detach().cpu().numpy()
 
     # cross batch comparisson
     if keypoint_uniqueness_loss:
@@ -279,9 +288,12 @@ def loss_fn_batch_sim(
                 if score > 0:
                     loss_kp_unique += (1 / score)  # If they are assigned to the same keypoints map them far apart     #  + eps
 
-        loss += loss_kp_unique / B
+        loss_kp_unique /= B
+        loss += loss_kp_unique
 
-    return loss
+        stats["loss_kp_unique"] = loss_kp_unique.detach().cpu().numpy()
+
+    return loss, stats
 
 
 @torch.no_grad()
@@ -391,20 +403,21 @@ def grouping_coords(metric_features: torch.Tensor, keypoint_types: torch.Tensor,
     if NUM_KP == 1:
         return torch.tensor([0], device=metric_features.device)
 
-    pairdists = torch.zeros(NUM_KP, NUM_KP, device=metric_features.device)
+    # pairdists = torch.zeros(NUM_KP, NUM_KP, device=metric_features.device)
 
-    for idx in range(NUM_KP):
-        a = metric_features[idx].unsqueeze(0).repeat(NUM_KP, 1)
-        dists = sim_fn(a, metric_features).squeeze(1)
-        pairdists[idx, :] = dists / dists.max()
+    # for idx in range(NUM_KP):
+    #     a = metric_features[idx].unsqueeze(0).repeat(NUM_KP, 1)
+    #     dists = sim_fn(a, metric_features).squeeze(1)
+    #     dists = torch.sigmoid(dists)
+    #     pairdists[idx, :] = dists / (dists.max() + 1e-7)
 
-    # pairdists = torch.cdist(metric_features.unsqueeze(0), metric_features.unsqueeze(0), p=2).squeeze(0)
+    pairdists = torch.cdist(metric_features.unsqueeze(0), metric_features.unsqueeze(0), p=2).squeeze(0)
 
     # similarity = (keypoint_types[None, :] == keypoint_types[:, None]).int() + 1
     similarity = 1
     # identity = 1 - torch.eye(NUM_KP, device=metric_features.device)
 
-    pairdists = 1 - pairdists
+    # pairdists = 1 - pairdists
 
     scores = pairdists * similarity
 
@@ -421,9 +434,9 @@ dummy_count = 0
 
 
 @torch.no_grad()
-def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5):
+def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5, output_size=2):
 
-    boxes_all = roi_pool(embeddings, keypoints[:, [0, 3, 4, 5, 6]], output_size=2, spatial_scale=0.125)
+    boxes_all = roi_pool(embeddings, keypoints[:, [0, 3, 4, 5, 6]], output_size=output_size, spatial_scale=0.125)
     num_boxes_all, *dims = boxes_all.size()
     boxes_all = boxes_all.view(num_boxes_all, -1)
 

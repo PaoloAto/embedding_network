@@ -153,3 +153,4 @@ cython_debug/
 # Folders
 runs
 models
+logs

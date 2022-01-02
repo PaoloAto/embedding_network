@@ -43,11 +43,17 @@ ds_images = U.data.dmap(ds_base, lambda arg: arg[0])
 dl_images = U.data.DataLoader(ds_images, batch_size=50)
 dl_features = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2.collate_fn)
 
-N = net.CoordNetFirstOnly(597).cuda()
-N.load_state_dict(torch.load("models/feature_sim/19.features.pth"))
+# N = net.CoordNetFirstOnly(597).cuda()
+# N.load_state_dict(torch.load("models/feature_sim/19.features.pth"))
 
-S = net.SameNet(512).cuda()
-S.load_state_dict(torch.load("models/feature_sim/19.classifier.pth"))
+# S = net.SameNet(512).cuda()
+# S.load_state_dict(torch.load("models/feature_sim/19.classifier.pth"))
+
+N = net.CoordNetFirstOnly(597).cuda()
+N.load_state_dict(torch.load("models/feature_roi1x1_pml/01.features.pth"))
+
+S = net.SameNet(128).cuda()
+S.load_state_dict(torch.load("models/feature_roi1x1_pml/01.classifier.pth"))
 
 TRUE_POSITIVE = 0
 FALSE_POSITIVE = 1
@@ -71,7 +77,7 @@ for idx, img, (feats, kps) in zip(tqdm(range(len(dl_images))), dl_images, dl_fea
     kps = kps.float()
     embs = N(feats)
 
-    stat, stat_class = loss.evaluate_visualization(embs, kps, S, img)
+    stat, stat_class = loss.evaluate_visualization(embs, kps, S, img, output_size=1)
     stats += stat.cpu().numpy()
     stats_class += stat_class.cpu().numpy()
 

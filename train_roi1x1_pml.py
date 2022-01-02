@@ -10,10 +10,17 @@ import net
 
 import dataloader2
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
+
+import pytorch_utils as U
 
 
-def main():
+def main(directory, logdir):
+    logdir = f"{logdir}/{U.dirp.ts()}"
+
+    U.paths.makedirs(directory, exist_ok=True)
+    U.paths.makedirs(logdir, exist_ok=True)
+
+    writer = SummaryWriter(log_dir=logdir)
 
     # ds = dataloader_clean.PifpafDataset(
     #     image_paths="cache/coco_train/images/*.jpg",
@@ -60,6 +67,8 @@ def main():
 
     epoch = 1000
 
+    step = 0
+
     for e in range(epoch):
 
         print("Epoch", e)
@@ -70,7 +79,14 @@ def main():
             kps = kps.float()
             embs = N(feats)
 
-            l = loss.loss_fn_batch_sim(embs, kps, S, output_size=1)
+            l, stats = loss.loss_fn_batch_sim(embs, kps, S, output_size=1)
+
+            for name, value in stats.items():
+                writer.add_scalar(name, value, global_step=step)
+            writer.add_scalar("epoch", e, global_step=step)
+            writer.add_scalar("total_loss", l.cpu().item(), global_step=step)
+
+            step += 1
 
             # All gradient computation
             optim.zero_grad()
@@ -81,9 +97,9 @@ def main():
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/feature_roi1x1_pml/{e:02}.features.pth")
-        torch.save(S.state_dict(), f"models/feature_roi1x1_pml/{e:02}.classifier.pth")
+        torch.save(N.state_dict(), f"{directory}/{e:02}.features.pth")
+        torch.save(S.state_dict(), f"{directory}/{e:02}.classifier.pth")
 
 
 if __name__ == '__main__':
-    main()
+    main("models/feature_roi1x1_pml_altloss", "logs")
