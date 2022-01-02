@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from os import pardir
 import torch.utils.data as data
 import numpy as np
@@ -11,7 +12,13 @@ from torchvision.ops import roi_pool
 
 from sklearn.cluster import AgglomerativeClustering
 
-import matplotlib.pyplot as plt
+from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning.reducers import ThresholdReducer
+from pytorch_metric_learning.regularizers import LpRegularizer
+from pytorch_metric_learning import losses, miners
+
+miner = miners.MultiSimilarityMiner()
+loss_func = losses.TripletMarginLoss(distance=CosineSimilarity(), reducer=ThresholdReducer(high=0.3), embedding_regularizer=LpRegularizer())
 
 
 def loss_fn(embeddings, keypoints, keypoint_uniqueness_loss=True):  # , eps=1e-7
@@ -151,6 +158,7 @@ def loss_fn_batch_sim(
     sim_fn=None,
     keypoint_uniqueness_loss=True,
     pairwise_random_count=100,
+    output_size=2
 ):  # , eps=1e-7
     loss = 0
 
@@ -160,7 +168,7 @@ def loss_fn_batch_sim(
 
     # ROI Pooling => Embeddings from net: [B, C, H, W], GT KP: [Obj_Instance, kp_type, x1, x2, y1, y2]
     boxes_all = roi_pool(
-        embeddings, keypoints[:, [0, 3, 4, 5, 6]], output_size=2, spatial_scale=0.125
+        embeddings, keypoints[:, [0, 3, 4, 5, 6]], output_size=output_size, spatial_scale=0.125
     )
     num_boxes_all, *dims = boxes_all.size()
     boxes_all = boxes_all.view(num_boxes_all, -1)
@@ -175,34 +183,40 @@ def loss_fn_batch_sim(
         boxes = boxes_all[all_batch_idxs == batch_idx, :]
 
         all_obj_idxs = keypoint_subset[:, 0]
-        for obj_idx in torch.unique(
-            all_obj_idxs
-        ):  # kp_types of per obj_instance in an image
 
-            positive = boxes[
-                all_obj_idxs == obj_idx, :
-            ]  # Getting all annotated kp from the current obj_idx
-            num_boxes, *dims = positive.size()
+        hard_pairs = miner(boxes, all_obj_idxs)
+        loss = loss_func(boxes, all_obj_idxs, hard_pairs)
 
-            positive = positive.view(1, num_boxes, -1)
+        loss_metric += loss
 
-            compute_p = torch.cdist(positive, positive)
-            loss_metric += compute_p.mean()
+        # for obj_idx in torch.unique(
+        #     all_obj_idxs
+        # ):  # kp_types of per obj_instance in an image
 
-            negative = boxes[
-                all_obj_idxs != obj_idx, :
-            ]  # Getting all kp from the other obj_idx different from the current (can be none if no other annotated kp person instance in image)
+        #     positive = boxes[
+        #         all_obj_idxs == obj_idx, :
+        #     ]  # Getting all annotated kp from the current obj_idx
+        #     num_boxes, *dims = positive.size()
 
-            if negative.size(0) != 0:
-                num_boxes, *dims = negative.size()
+        #     positive = positive.view(1, num_boxes, -1)
 
-                negative = negative.view(1, num_boxes, -1)
+        #     compute_p = torch.cdist(positive, positive)
+        #     loss_metric += compute_p.mean()
 
-                compute_n = torch.cdist(positive, negative)
+        #     negative = boxes[
+        #         all_obj_idxs != obj_idx, :
+        #     ]  # Getting all kp from the other obj_idx different from the current (can be none if no other annotated kp person instance in image)
 
-                score = compute_n.mean()
-                if score > 0:
-                    loss_metric += 1 / score  # + eps
+        #     if negative.size(0) != 0:
+        #         num_boxes, *dims = negative.size()
+
+        #         negative = negative.view(1, num_boxes, -1)
+
+        #         compute_n = torch.cdist(positive, negative)
+
+        #         score = compute_n.mean()
+        #         if score > 0:
+        #             loss_metric += -score  # + eps
 
     loss += loss_metric / B
 
@@ -215,32 +229,37 @@ def loss_fn_batch_sim(
             keypoint_subset = keypoints[all_batch_idxs == batch_idx, 1:]
             boxes = boxes_all[all_batch_idxs == batch_idx, :]
 
+            num_boxes, dim = boxes.size()
+
             all_obj_idxs = keypoint_subset[:, 0]
-            for obj_idx in torch.unique(
-                all_obj_idxs
-            ):  # kp_types of per obj_instance in an image
+            for obj_idx, box in zip(all_obj_idxs, boxes):  # kp_types of per obj_instance in an image
+                # for obj_idx, box in zip(torch.unique(all_obj_idxs), boxes):  # kp_types of per obj_instance in an image
 
-                positive = boxes[
-                    all_obj_idxs == obj_idx, :
-                ]  # Getting all annotated kp from the current obj_idx
-                if positive.size(0) > 0:
+                pred = sim_fn(box.unsqueeze(0).repeat(num_boxes, 1), boxes).squeeze(1)
+                labels = (all_obj_idxs == obj_idx).float()
 
-                    a, b = pairwise_random(positive, positive, pairwise_random_count)
-                    pred = sim_fn(a, b)
-                    labels = torch.ones((pairwise_random_count, 1), device=pred.device)
+                loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
+                loss_sim_denom += 1
 
-                    loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
-                    loss_sim_denom += 1
+                # positive = boxes[all_obj_idxs == obj_idx, :]  # Getting all annotated kp from the current obj_idx
+                # if positive.size(0) > 0:
 
-                    negative = boxes[all_obj_idxs != obj_idx, :]
-                    if negative.size(0) > 0:
+                #     a, b = pairwise_random(positive, positive, pairwise_random_count)
+                #     pred = sim_fn(a, b)
+                #     labels = torch.ones((pairwise_random_count, 1), device=pred.device)
 
-                        a, b = pairwise_random(positive, negative, pairwise_random_count)
-                        pred = sim_fn(a, b)
-                        labels = torch.zeros((pairwise_random_count, 1), device=pred.device)
+                #     loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
+                #     loss_sim_denom += 1
 
-                        loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
-                        loss_sim_denom += 1
+                #     negative = boxes[all_obj_idxs != obj_idx, :]
+                #     if negative.size(0) > 0:
+
+                #         a, b = pairwise_random(positive, negative, pairwise_random_count)
+                #         pred = sim_fn(a, b)
+                #         labels = torch.zeros((pairwise_random_count, 1), device=pred.device)
+
+                #         loss_sim += F.binary_cross_entropy_with_logits(pred, labels)
+                #         loss_sim_denom += 1
 
         loss += loss_sim / B / loss_sim_denom
 
@@ -366,19 +385,31 @@ def evaluate(embeddings, keypoints, sim_fn, threshold=0.5):
     return stats, stats_class
 
 
-def grouping_coords(metric_features: torch.Tensor, keypoint_types: torch.Tensor, n_clusters):
+def grouping_coords(metric_features: torch.Tensor, keypoint_types: torch.Tensor, n_clusters, sim_fn):
     NUM_KP, BOX = metric_features.size()
 
     if NUM_KP == 1:
         return torch.tensor([0], device=metric_features.device)
 
-    pairdists = torch.cdist(metric_features.unsqueeze(0), metric_features.unsqueeze(0), p=2).squeeze(0)
-    similarity = (keypoint_types[None, :] == keypoint_types[:, None]).int() + 1
+    pairdists = torch.zeros(NUM_KP, NUM_KP, device=metric_features.device)
+
+    for idx in range(NUM_KP):
+        a = metric_features[idx].unsqueeze(0).repeat(NUM_KP, 1)
+        dists = sim_fn(a, metric_features).squeeze(1)
+        pairdists[idx, :] = dists / dists.max()
+
+    # pairdists = torch.cdist(metric_features.unsqueeze(0), metric_features.unsqueeze(0), p=2).squeeze(0)
+
+    # similarity = (keypoint_types[None, :] == keypoint_types[:, None]).int() + 1
+    similarity = 1
     # identity = 1 - torch.eye(NUM_KP, device=metric_features.device)
+
+    pairdists = 1 - pairdists
 
     scores = pairdists * similarity
 
-    cluster = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed', linkage='average')
+    cluster = AgglomerativeClustering(n_clusters=None, affinity='precomputed', linkage='average', distance_threshold=0.5)
+    # cluster = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed', linkage='average')
     groupings = cluster.fit_predict(scores.cpu().numpy())
 
     assert groupings.shape == (NUM_KP,)
@@ -446,7 +477,7 @@ def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5):
                         stats[TOTAL_NEGATIVE] += pred.size(0)
 
         groupings_gt: np.ndarray = all_obj_idxs.int().cpu().numpy()
-        groupings_pred: np.ndarray = grouping_coords(boxes, keypoint_subset[:, 1], len(torch.unique(all_obj_idxs))).cpu().numpy()
+        groupings_pred: np.ndarray = grouping_coords(boxes, keypoint_subset[:, 1], len(torch.unique(all_obj_idxs)), sim_fn).cpu().numpy()
 
         db_gt = {}
         db_pred = {}
@@ -499,7 +530,7 @@ def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5):
             plt.scatter(keypoint_xy[groupings_pred == group_idx, 0].cpu().numpy(), keypoint_xy[groupings_pred == group_idx, 1].cpu().numpy())
 
         global dummy_count
-        plt.savefig(f"images/{dummy_count:07}.jpg")
+        plt.savefig(f"visualize/results/images/{dummy_count:07}.jpg")
         dummy_count += 1
 
         plt.clf()

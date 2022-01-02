@@ -49,12 +49,6 @@ N.load_state_dict(torch.load("models/feature_sim/19.features.pth"))
 S = net.SameNet(512).cuda()
 S.load_state_dict(torch.load("models/feature_sim/19.classifier.pth"))
 
-# N = net.CoordNet(597).cuda()
-# N.load_state_dict(torch.load("models/feature_sim_fullCoord/00.features.pth"))
-
-# S = net.SameNet(512).cuda()
-# S.load_state_dict(torch.load("models/feature_sim_fullCoord/00.classifier.pth"))
-
 TRUE_POSITIVE = 0
 FALSE_POSITIVE = 1
 TRUE_NEGATIVE = 2

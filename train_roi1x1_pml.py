@@ -54,7 +54,7 @@ def main():
     N = net.CoordNetFirstOnly(597).cuda()
     # N = net.Net(597).cuda()
     # N = net.CoordNet(597).cuda()
-    S = net.SameNet(512).cuda()
+    S = net.SameNet(128).cuda()
 
     optim = torch.optim.Adam(list(N.parameters()) + list(S.parameters()), lr=1e-4)
 
@@ -70,7 +70,7 @@ def main():
             kps = kps.float()
             embs = N(feats)
 
-            l = loss.loss_fn_batch_sim(embs, kps, S)
+            l = loss.loss_fn_batch_sim(embs, kps, S, output_size=1)
 
             # All gradient computation
             optim.zero_grad()
@@ -81,8 +81,8 @@ def main():
 
         print("Loss:", sum(record_losses)/len(record_losses))
         writer.add_scalar('cdist/loss', sum(record_losses)/len(record_losses), e)
-        torch.save(N.state_dict(), f"models/feature_sim_fullCoord/{e:02}.features.pth")
-        torch.save(S.state_dict(), f"models/feature_sim_fullCoord/{e:02}.classifier.pth")
+        torch.save(N.state_dict(), f"models/feature_roi1x1_pml/{e:02}.features.pth")
+        torch.save(S.state_dict(), f"models/feature_roi1x1_pml/{e:02}.classifier.pth")
 
 
 if __name__ == '__main__':
