@@ -50,10 +50,10 @@ dl_features = U.data.DataLoader(ds_cached, batch_size=50, collate_fn=dataloader2
 # S.load_state_dict(torch.load("models/feature_sim/19.classifier.pth"))
 
 N = net.CoordNetFirstOnly(597).cuda()
-N.load_state_dict(torch.load("models/feature_roi1x1_pml/01.features.pth"))
+N.load_state_dict(torch.load("models/feature_roi1x1_pml_altloss_200/05.features.pth"))
 
 S = net.SameNet(128).cuda()
-S.load_state_dict(torch.load("models/feature_roi1x1_pml/01.classifier.pth"))
+S.load_state_dict(torch.load("models/feature_roi1x1_pml_altloss_200/05.classifier.pth"))
 
 TRUE_POSITIVE = 0
 FALSE_POSITIVE = 1

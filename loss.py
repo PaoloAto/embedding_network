@@ -424,7 +424,7 @@ def grouping_coords(metric_features: torch.Tensor, keypoint_types: torch.Tensor,
 
     scores = pairdists * similarity
 
-    cluster = AgglomerativeClustering(n_clusters=None, affinity='precomputed', linkage='average', distance_threshold=0.5)
+    cluster = AgglomerativeClustering(n_clusters=None, affinity='precomputed', linkage='average', distance_threshold=9.75)
     # cluster = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed', linkage='average')
     groupings = cluster.fit_predict(scores.cpu().numpy())
 

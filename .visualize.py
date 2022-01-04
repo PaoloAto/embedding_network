@@ -150,6 +150,12 @@ with torch.no_grad():
     FSIM = net.CoordNetFirstOnly(597).cuda()
     FSIM.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_sim/19.features.pth"))
 
+    FSIMTRIP = net.CoordNetFirstOnly(597).cuda()
+    FSIMTRIP.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_roi1x1_pml_altloss_200/05.features.pth"))
+
+    FSIMCON = net.CoordNetFirstOnly(597).cuda()
+    FSIMCON.load_state_dict(torch.load("/home/hestia/Documents/Experiments/Test/embedding_network/models/feature_roi1x1_pml_altloss_contrast/00.features.pth"))
+
     ds_new = dataloader_clean.PifpafDataset(
         image_paths="cache/coco_train/images/*.jpg",
         keypoint_paths="cache/hdd_data/features/*.keypoints.pt",
@@ -177,5 +183,11 @@ with torch.no_grad():
 
         emb: torch.Tensor = FSIM(ft)
         doview(emb, kp, "visualize/out_sim_cached_sim.png", "visualize/out_sim_cached_view.png")
+
+        emb: torch.Tensor = FSIMTRIP(ft)
+        doview(emb, kp, "visualize/out_trip_sim.png", "visualize/out_trip_view.png")
+
+        emb: torch.Tensor = FSIMCON(ft)
+        doview(emb, kp, "visualize/out_cons_sim.png", "visualize/out_cons_view.png")
 
         break
