@@ -539,11 +539,11 @@ def evaluate_visualization(embeddings, keypoints, sim_fn, img, threshold=0.5, ou
         img_item = TF.to_pil_image(img_item / img_item.max())
         plt.imshow(img_item)
 
-        keypoint_xy = (keypoint_subset[:, [2, 4]] + keypoint_subset[:, [3, 5]]) * 0.5
-        keypoint_xy = keypoint_xy.long()
+        # keypoint_xy = (keypoint_subset[:, [2, 4]] + keypoint_subset[:, [3, 5]]) * 0.5
+        # keypoint_xy = keypoint_xy.long()
 
-        for group_idx in torch.unique(groupings_pred):
-            plt.scatter(keypoint_xy[groupings_pred == group_idx, 0].cpu().numpy(), keypoint_xy[groupings_pred == group_idx, 1].cpu().numpy())
+        # for group_idx in torch.unique(groupings_pred):
+        #     plt.scatter(keypoint_xy[groupings_pred == group_idx, 0].cpu().numpy(), keypoint_xy[groupings_pred == group_idx, 1].cpu().numpy())
 
         global dummy_count
         plt.savefig(f"visualize/results/images/{dummy_count:07}.jpg")
